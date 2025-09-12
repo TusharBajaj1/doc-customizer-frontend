@@ -6,9 +6,7 @@ import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-/**
- * Read File -> Uint8Array
- */
+/** Read File -> Uint8Array */
 function readAsUint8Array(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -26,9 +24,7 @@ function readAsUint8Array(file) {
   });
 }
 
-/**
- * Render a single thumbnail for pageNumber from pdf (Uint8Array) and return dataURL
- */
+/** Render a single thumbnail for pageNumber from pdf (Uint8Array) and return dataURL */
 async function renderThumbForPage(pdfData, pageNumber, scale = 0.6) {
   const loading = pdfjsLib.getDocument({ data: pdfData });
   const pdf = await loading.promise;
@@ -49,18 +45,20 @@ export default function App() {
   const inputRef = useRef();
 
   /**
-   * Called when files are selected by user.
-   * Creates placeholder pages immediately (so reordering works), and starts async thumbnail rendering.
+   * On file upload: process files sequentially.
+   * For each file: add to state immediately (with placeholder pages),
+   * then start async thumbnail render which updates that entry.
    */
   async function handleFiles(files) {
     const arr = Array.from(files || []);
-    const added = [];
+    if (arr.length === 0) return;
 
     for (const f of arr) {
       try {
+        // read bytes first
         const bytes = await readAsUint8Array(f);
 
-        // discover number of pages synchronously (pdfjs getDocument)
+        // discover page count synchronously
         const loading = pdfjsLib.getDocument({ data: bytes });
         const pdf = await loading.promise;
         const totalPages = pdf.numPages || 0;
@@ -71,44 +69,53 @@ export default function App() {
           pages.push({ pageNumber: i, thumb: null });
         }
 
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         const item = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          id,
           name: f.name,
           bytes,
           pages,
-          isRendering: true, // thumbnails being generated
+          isRendering: true,
         };
 
-        added.push(item);
+        // Immediately add to state so subsequent renders can find it
+        setFileItems((prev) => {
+          const combined = [...prev, item];
+          return combined;
+        });
 
-        // start rendering thumbnails asynchronously (don't await here to keep UI responsive)
+        // set selected to this newly added file if none selected
+        setSelectedIndex((prevSel) => (prevSel === null ? 0 : prevSel));
+
+        // Start async thumbnail rendering (do not block UI)
         (async () => {
           try {
             const thumbs = [];
-            // We'll render sequentially; for large PDFs you may want to throttle or render first N quickly
+            // render sequentially (could be optimized)
             for (let p = 1; p <= totalPages; p++) {
               const thumb = await renderThumbForPage(bytes, p, 0.6);
               thumbs.push(thumb);
+
               // update progressive thumbnails so user sees them appear
               setFileItems((prev) => {
                 const copy = [...prev];
-                const idx = copy.findIndex(ci => ci && ci.id === item.id);
-                if (idx === -1) return prev;
-                // assign thumbnails we've rendered so far
-                const newPages = copy[idx].pages.map(pg => {
+                const idx = copy.findIndex((ci) => ci && ci.id === id);
+                if (idx === -1) return prev; // item not found (shouldn't happen)
+                const newPages = copy[idx].pages.map((pg) => {
                   if (pg.pageNumber <= thumbs.length) {
                     return { pageNumber: pg.pageNumber, thumb: thumbs[pg.pageNumber - 1] };
                   }
                   return pg;
                 });
-                copy[idx] = { ...copy[idx], pages: newPages, isRendering: p < totalPages }; // still rendering if not done
+                copy[idx] = { ...copy[idx], pages: newPages, isRendering: p < totalPages };
                 return copy;
               });
             }
-            // final update: mark rendering done
+
+            // final mark as done
             setFileItems((prev) => {
               const copy = [...prev];
-              const idx = copy.findIndex(ci => ci && ci.id === item.id);
+              const idx = copy.findIndex((ci) => ci && ci.id === id);
               if (idx === -1) return prev;
               copy[idx] = { ...copy[idx], isRendering: false };
               return copy;
@@ -118,32 +125,23 @@ export default function App() {
             // mark rendering false to allow export attempts and show partial thumbs
             setFileItems((prev) => {
               const copy = [...prev];
-              const idx = copy.findIndex(ci => ci && ci.id === item.id);
+              const idx = copy.findIndex((ci) => ci && ci.id === id);
               if (idx === -1) return prev;
               copy[idx] = { ...copy[idx], isRendering: false };
               return copy;
             });
           }
         })();
-
       } catch (err) {
         console.error("Failed to read/load PDF:", f.name, err);
         alert(`Failed to read or load PDF ${f.name}. Try a different file.`);
       }
     }
-
-    if (added.length > 0) {
-      setFileItems(prev => {
-        const combined = [...prev, ...added];
-        return combined;
-      });
-      if (selectedIndex === null) setSelectedIndex(0);
-    }
   }
 
   function onSelect(idx) {
     setSelectedIndex(idx);
-    // pages already created during upload; thumbnails render asynchronously
+    // pages are already created during upload; thumbnails render in background
   }
 
   function onDragEnd(result) {
@@ -162,37 +160,31 @@ export default function App() {
     });
   }
 
-  /**
-   * Export reordered PDF safely: requires that pages array exists and rendering is complete or partially ok.
-   */
+  /** Export reordered PDF safely */
   async function exportReordered(idx) {
     if (idx === null || idx === undefined) return alert("No file selected.");
     const item = fileItems[idx];
     if (!item) return alert("No file selected.");
 
-    // Defensive: ensure we have page placeholders
     if (!item.pages || item.pages.length === 0) {
       return alert("This file has no page information. Try re-uploading or a different PDF.");
     }
 
-    // If still rendering, warn user and ask to wait (we honor user's wish to not block forever)
     if (item.isRendering) {
-      // give user clear option: wait or continue (continuing may produce odd exports if thumbs/order incomplete)
       const cont = window.confirm("Thumbnails are still rendering. Export now may lead to incorrect results. Continue anyway?");
       if (!cont) return;
     }
 
     try {
       // Build zero-based index array using current page order
-      const pageIndices = item.pages.map(p => {
+      const pageIndices = item.pages.map((p) => {
         const n = Number(p.pageNumber);
         return Number.isFinite(n) ? n - 1 : -1;
       });
 
       console.log("Export requested. pageIndices:", pageIndices);
 
-      // Validate indices not negative
-      if (pageIndices.some(i => i < 0)) {
+      if (pageIndices.some((i) => i < 0)) {
         console.error("Invalid pageNumbers detected:", item.pages);
         return alert("Export failed: invalid page numbers in the document.");
       }
@@ -204,14 +196,12 @@ export default function App() {
       const srcPageCount = existingPdf.getPageCount ? existingPdf.getPageCount() : existingPdf.getPages().length;
       console.log("Source PDF page count:", srcPageCount);
 
-      // Validate indices in source range
-      const outOfRange = pageIndices.find(i => i < 0 || i >= srcPageCount);
+      const outOfRange = pageIndices.find((i) => i < 0 || i >= srcPageCount);
       if (outOfRange !== undefined) {
         console.error("Requested index out of range:", outOfRange, "srcPageCount:", srcPageCount);
         return alert(`Export failed: requested page does not exist in source PDF (pages: ${srcPageCount}).`);
       }
 
-      // Copy pages in requested order
       const newPdf = await PDFDocument.create();
       const copied = await newPdf.copyPages(existingPdf, pageIndices);
       console.log("copied length:", copied.length, "expected:", pageIndices.length);
@@ -220,9 +210,8 @@ export default function App() {
         console.error("copyPages returned empty list.");
         return alert("Export failed: unable to copy pages from source PDF.");
       }
-      copied.forEach(p => newPdf.addPage(p));
+      copied.forEach((p) => newPdf.addPage(p));
 
-      // Save with safe option
       const outBytes = await newPdf.save({ useObjectStreams: false });
       const outLen = outBytes && outBytes.length ? outBytes.length : (outBytes && outBytes.byteLength ? outBytes.byteLength : 0);
       console.log("outBytes length:", outLen);
@@ -235,13 +224,11 @@ export default function App() {
       const blob = new Blob([outBytes], { type: "application/pdf" });
       saveAs(blob, `customized-${item.name}`);
       console.log("Export success for", item.name);
-
     } catch (err) {
       console.error("exportReordered error:", err);
       const message = err && err.message ? err.message : String(err);
       alert("Export failed: " + message + "\n\nOffering original file as fallback.");
 
-      // fallback download original
       try {
         const src = item.bytes;
         if (src) {
@@ -319,16 +306,33 @@ export default function App() {
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="pages" direction="horizontal">
                 {(provided) => (
-                  <div ref={provided.innerRef} {...provided.droppableProps} className="thumbs-scroll" style={{ display: "flex", gap: 12, overflow: "auto", padding: 8 }}>
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className="thumbs-scroll"
+                    style={{ display: "flex", gap: 12, overflow: "auto", padding: 8 }}
+                  >
                     {(fileItems[selectedIndex].pages || []).map((p, idx) => (
-                      <Draggable key={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`} draggableId={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`} index={idx}>
+                      <Draggable
+                        key={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`}
+                        draggableId={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`}
+                        index={idx}
+                      >
                         {(prov) => (
                           <div
                             ref={prov.innerRef}
                             {...prov.draggableProps}
                             {...prov.dragHandleProps}
                             className="thumb"
-                            style={{ width: 160, padding: 8, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, textAlign: "center", flex: "0 0 auto" }}
+                            style={{
+                              width: 160,
+                              padding: 8,
+                              background: "#fff",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: 8,
+                              textAlign: "center",
+                              flex: "0 0 auto",
+                            }}
                           >
                             {p.thumb ? (
                               <img src={p.thumb} style={{ width: "100%", height: 120, objectFit: "contain", borderRadius: 6 }} alt={`page-${p.pageNumber}`} />
