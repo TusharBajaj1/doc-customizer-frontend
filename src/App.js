@@ -4,12 +4,9 @@ import { saveAs } from "file-saver";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 /**
- * Simple, robust frontend-only PDF reorderer using pdf-lib.
- * - No pdfjs / canvas / worker required (avoids worker/CSP issues).
- * - Shows page placeholders (Page 1, Page 2...) and allows drag to reorder.
- * - Exports reordered PDF using pdf-lib with defensive checks.
- *
- * Limitations: No thumbnails (visual previews). This keeps the build stable.
+ * Stable MVP with Remove-file functionality added.
+ * - Upload PDFs, reorder pages, export reordered PDF.
+ * - Remove uploaded PDF from list (with confirmation).
  */
 
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB
@@ -38,7 +35,7 @@ export default function App() {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const inputRef = useRef();
 
-  // keep ref in sync to avoid stale closures
+  // Keep ref in sync with state to avoid stale closures
   useEffect(() => {
     fileItemsRef.current = fileItems;
   }, [fileItems]);
@@ -63,7 +60,7 @@ export default function App() {
         continue;
       }
 
-      // Use pdf-lib to load PDF and get page count
+      // Load with pdf-lib to get page count
       let existingPdf;
       try {
         existingPdf = await PDFDocument.load(bytes);
@@ -85,13 +82,11 @@ export default function App() {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const item = { id, name: f.name, bytes, pages, totalPages };
 
-      // insert item into state
       setFileItems((prev) => {
         const next = [...prev, item];
         return next;
       });
 
-      // select if none
       setSelectedIndex((prev) => (prev === null ? 0 : prev));
     }
   }
@@ -116,9 +111,39 @@ export default function App() {
     });
   }
 
+  /**
+   * Remove a file by index (asks for confirmation)
+   */
+  function removeFile(idx) {
+    if (idx === null || idx === undefined) return;
+    const file = fileItems[idx];
+    if (!file) return;
+    const ok = window.confirm(`Remove "${file.name}" from the list? This cannot be undone in this session.`);
+    if (!ok) return;
+
+    setFileItems((prev) => {
+      const copy = [...prev];
+      copy.splice(idx, 1);
+      return copy;
+    });
+
+    // update selection
+    setSelectedIndex((prevSel) => {
+      if (prevSel === null) return null;
+      if (idx < prevSel) return prevSel - 1; // index removed before current selection
+      if (idx === prevSel) {
+        // If we removed the currently selected file, select the next file if exists, otherwise previous, else null
+        const newLength = fileItems.length - 1;
+        if (newLength <= 0) return null;
+        if (idx <= newLength - 1) return idx; // select file that shifted into this index
+        return newLength - 1; // select last
+      }
+      return prevSel;
+    });
+  }
+
   async function exportReordered(idx) {
     if (idx === null || idx === undefined) return alert("No file selected.");
-    // read from ref for freshest data
     const currentFiles = fileItemsRef.current;
     const item = currentFiles[idx];
     if (!item) return alert("No file selected.");
@@ -128,7 +153,6 @@ export default function App() {
     }
 
     try {
-      // build zero-based indices according to current order
       const pageIndices = item.pages.map((p) => {
         const n = Number(p.pageNumber);
         return Number.isFinite(n) ? n - 1 : -1;
@@ -176,7 +200,6 @@ export default function App() {
 
       const blob = new Blob([outBytes], { type: "application/pdf" });
 
-      // Try saveAs, else fallback to opening blob URL
       try {
         saveAs(blob, `customized-${item.name}`);
       } catch (saveErr) {
@@ -209,6 +232,29 @@ export default function App() {
     }
   }
 
+  // Render file buttons with a small delete button per file
+  function renderFileButtons() {
+    return fileItems.map((f, i) => (
+      <div key={f.id} style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 8, marginBottom: 8 }}>
+        <button
+          onClick={() => onSelect(i)}
+          className="btn btn-ghost"
+          style={{ border: i === selectedIndex ? "2px solid #2563eb" : "1px solid #e5e7eb" }}
+        >
+          {f.name} ({f.totalPages})
+        </button>
+        <button
+          onClick={() => removeFile(i)}
+          className="btn"
+          style={{ background: "#ef4444", color: "#fff", padding: "6px 8px", borderRadius: 6, border: "none", cursor: "pointer" }}
+          title={`Remove ${f.name}`}
+        >
+          Delete
+        </button>
+      </div>
+    ));
+  }
+
   return (
     <div className="container">
       <div className="header">
@@ -228,28 +274,13 @@ export default function App() {
         </div>
       </div>
 
-      <div className="files-row">
-        {fileItems.length === 0 ? (
-          <div className="notice">No files yet — upload a PDF to get started.</div>
-        ) : (
-          fileItems.map((f, i) => (
-            <button
-              key={f.id}
-              onClick={() => onSelect(i)}
-              className="btn btn-ghost"
-              style={{ border: i === selectedIndex ? "2px solid #2563eb" : "1px solid #e5e7eb" }}
-            >
-              {f.name} ({f.totalPages} pages)
-            </button>
-          ))
-        )}
-      </div>
+      <div className="files-row">{fileItems.length === 0 ? <div className="notice">No files yet — upload a PDF to get started.</div> : renderFileButtons()}</div>
 
       {selectedIndex !== null && fileItems[selectedIndex] && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <strong>{fileItems[selectedIndex].name}</strong>
-            <div>
+            <div style={{ display: "flex", gap: 8 }}>
               <button
                 className="btn btn-primary"
                 onClick={() => exportReordered(selectedIndex)}
@@ -257,8 +288,13 @@ export default function App() {
               >
                 Export reordered PDF
               </button>
-              <button className="btn btn-ghost" onClick={() => alert("Compression / PPTX / DOCX require backend (we can add).")}>
-                Compression (backend)
+              <button
+                className="btn"
+                onClick={() => removeFile(selectedIndex)}
+                style={{ background: "#ef4444", color: "#fff", padding: "8px 10px", borderRadius: 6, border: "none" }}
+                title="Remove this file"
+              >
+                Remove file
               </button>
             </div>
           </div>
@@ -268,24 +304,44 @@ export default function App() {
               <Droppable droppableId="pages" direction="horizontal">
                 {(provided) => (
                   <div ref={provided.innerRef} {...provided.droppableProps} className="thumbs-scroll" style={{ display: "flex", gap: 12, overflow: "auto", padding: 8 }}>
-                    {(fileItems[selectedIndex].pages || []).map((p, idx) => (
-                      <Draggable key={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`} draggableId={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`} index={idx}>
-                        {(prov) => (
-                          <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps} style={{ width: 140, padding: 8, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, textAlign: "center", flex: "0 0 auto" }}>
-                            <div style={{ height: 100, display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280" }}>
-                              Page {p.pageNumber}
+                    {(fileItems[selectedIndex].pages || []).map((p, idx) => {
+                      const stableId = `${fileItems[selectedIndex].id}-page-${p.pageNumber}`;
+                      return (
+                        <Draggable key={stableId} draggableId={stableId} index={idx}>
+                          {(prov) => (
+                            <div
+                              ref={prov.innerRef}
+                              {...prov.draggableProps}
+                              {...prov.dragHandleProps}
+                              style={{
+                                width: 140,
+                                padding: 8,
+                                background: "#fff",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: 8,
+                                textAlign: "center",
+                                flex: "0 0 auto",
+                              }}
+                            >
+                              <div style={{ height: 100, display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280" }}>
+                                Page {p.pageNumber}
+                              </div>
+                              <div className="page-num" style={{ marginTop: 8 }}>
+                                Page {p.pageNumber}
+                              </div>
                             </div>
-                            <div className="page-num" style={{ marginTop: 8 }}>Page {p.pageNumber}</div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
+                          )}
+                        </Draggable>
+                      );
+                    })}
                     {provided.placeholder}
                   </div>
                 )}
               </Droppable>
             </DragDropContext>
-            <div className="notice" style={{ marginTop: 8 }}>Drag page boxes to reorder. Export will produce the reordered PDF.</div>
+            <div className="notice" style={{ marginTop: 8 }}>
+              Drag page boxes to reorder. Export will produce the reordered PDF.
+            </div>
           </div>
         </div>
       )}
