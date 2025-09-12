@@ -114,63 +114,93 @@ export default function App() {
     });
   }
 
+  // Updated exportReordered with detailed logging and safer save options
   async function exportReordered(idx) {
     if (idx === null || idx === undefined) return alert("No file selected.");
     const item = fileItems[idx];
     if (!item) return alert("No file selected.");
 
     try {
+      // Ensure thumbnails/pages exist
       if (!item.pages || item.pages.length === 0) {
+        console.log("exportReordered: pages empty, calling ensurePages...");
         await ensurePages(idx);
       }
 
+      // Re-read fresh item from state (ensurePages may have updated it)
       const freshItem = (fileItems[idx] && fileItems[idx].pages && fileItems[idx].pages.length) ? fileItems[idx] : item;
 
       if (!freshItem.pages || freshItem.pages.length === 0) {
         return alert("Could not read pages from this PDF. Export cancelled.");
       }
 
+      // Build zero-based index array based on thumbnails (user order)
       const pageIndices = freshItem.pages.map(p => {
         const n = Number(p.pageNumber);
         return Number.isFinite(n) ? n - 1 : -1;
       });
 
+      console.log("exportReordered: requested pageIndices:", pageIndices);
+
+      // Check for invalid indices
       const invalid = pageIndices.find(i => i < 0);
       if (invalid !== undefined && invalid !== null) {
-        console.error("exportReordered: invalid pageNumber found", pageIndices);
-        return alert("Export failed due to invalid page data.");
+        console.error("exportReordered: invalid page index in pageIndices", pageIndices);
+        return alert("Export failed: invalid page data found.");
       }
 
+      // Load source PDF bytes
       const srcBytes = freshItem.bytes instanceof Uint8Array ? freshItem.bytes : new Uint8Array(freshItem.bytes);
-      console.log("exportReordered: loading source PDF (bytes length)", srcBytes.length);
-      const existingPdf = await PDFDocument.load(srcBytes);
+      console.log("exportReordered: source bytes length =", srcBytes.length);
 
+      const existingPdf = await PDFDocument.load(srcBytes);
       const srcPageCount = existingPdf.getPageCount ? existingPdf.getPageCount() : existingPdf.getPages().length;
+      console.log("exportReordered: source PDF page count =", srcPageCount);
+
+      // Validate indices against source page count
       const outOfRange = pageIndices.find(i => i < 0 || i >= srcPageCount);
       if (outOfRange !== undefined && outOfRange !== null) {
         console.error("exportReordered: requested index outside source PDF pages", outOfRange, srcPageCount);
         return alert(`Export failed: requested page does not exist in the source PDF (source pages: ${srcPageCount}).`);
       }
 
+      // Copy pages in the requested order
       const newPdf = await PDFDocument.create();
       const copied = await newPdf.copyPages(existingPdf, pageIndices);
+      console.log("exportReordered: copied pages count =", copied.length, "expected =", pageIndices.length);
+
+      if (!copied || copied.length === 0) {
+        console.error("exportReordered: copyPages returned no pages. Aborting.");
+        return alert("Export failed: unable to copy pages from source PDF.");
+      }
       copied.forEach(p => newPdf.addPage(p));
 
-      const outBytes = await newPdf.save();
+      // Save with a safer option
+      const outBytes = await newPdf.save({ useObjectStreams: false });
+      const outLen = outBytes && outBytes.length ? outBytes.length : (outBytes && outBytes.byteLength ? outBytes.byteLength : 0);
+      console.log("exportReordered: outBytes length =", outLen);
+
+      if (!outLen || outLen === 0) {
+        console.error("exportReordered: generated PDF is empty (0 bytes).");
+        throw new Error("Generated PDF is empty.");
+      }
+
       const blob = new Blob([outBytes], { type: "application/pdf" });
       saveAs(blob, `customized-${freshItem.name}`);
-      console.log("exportReordered: success", freshItem.name);
+      console.log("exportReordered: download triggered successfully for", freshItem.name);
     } catch (err) {
       console.error("exportReordered error:", err);
       const message = err && err.message ? err.message : String(err);
       alert("Export failed: " + message + "\n\nAttempting fallback download of original file.");
 
+      // Fallback: offer original file download
       try {
         const src = item.bytes;
         if (src) {
           const srcUint8 = src instanceof Uint8Array ? src : new Uint8Array(src);
           const blob = new Blob([srcUint8], { type: "application/pdf" });
           saveAs(blob, `original-${item.name}`);
+          console.log("exportReordered: fallback download (original file) triggered.");
         }
       } catch (fallbackErr) {
         console.error("fallback download error:", fallbackErr);
