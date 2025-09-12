@@ -4,9 +4,15 @@ import { saveAs } from "file-saver";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 /**
- * Stable MVP with Remove-file functionality added.
- * - Upload PDFs, reorder pages, export reordered PDF.
- * - Remove uploaded PDF from list (with confirmation).
+ * Stable MVP with Merge capability.
+ * - Upload PDFs, mark files for merge via checkbox, merge selected files into one PDF.
+ * - Reorder pages inside a file, export reordered PDF.
+ * - Remove uploaded PDF.
+ *
+ * Merge behavior:
+ * - Merges selected files in the order they appear in the file list.
+ * - Each file contributes all its pages (in their current order) into the merged PDF.
+ * - The merged PDF is added to the file list as a new file and auto-selected.
  */
 
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB
@@ -29,17 +35,18 @@ function readAsUint8Array(file) {
 }
 
 export default function App() {
-  // fileItems: [{ id, name, bytes: Uint8Array, pages: [{ pageNumber }], totalPages }]
+  // fileItems: [{ id, name, bytes: Uint8Array, pages: [{ pageNumber }], totalPages, selectedForMerge }]
   const [fileItems, setFileItems] = useState([]);
   const fileItemsRef = useRef([]);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const inputRef = useRef();
 
-  // Keep ref in sync with state to avoid stale closures
+  // Keep ref in sync to avoid stale closures
   useEffect(() => {
     fileItemsRef.current = fileItems;
   }, [fileItems]);
 
+  // ---------- Upload ----------
   async function handleFiles(files) {
     const arr = Array.from(files || []);
     if (!arr.length) return;
@@ -80,7 +87,7 @@ export default function App() {
       for (let i = 1; i <= totalPages; i++) pages.push({ pageNumber: i });
 
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const item = { id, name: f.name, bytes, pages, totalPages };
+      const item = { id, name: f.name, bytes, pages, totalPages, selectedForMerge: false };
 
       setFileItems((prev) => {
         const next = [...prev, item];
@@ -91,29 +98,25 @@ export default function App() {
     }
   }
 
-  function onSelect(idx) {
-    setSelectedIndex(idx);
-  }
-
-  function onDragEnd(result) {
-    if (!result.destination) return;
-    if (selectedIndex === null) return;
-
+  // ---------- Selection for merge ----------
+  function toggleSelectForMerge(idx) {
     setFileItems((prev) => {
       const copy = [...prev];
-      const file = copy[selectedIndex];
-      if (!file || !file.pages) return prev;
-      const pages = Array.from(file.pages);
-      const [moved] = pages.splice(result.source.index, 1);
-      pages.splice(result.destination.index, 0, moved);
-      copy[selectedIndex] = { ...file, pages };
+      if (!copy[idx]) return prev;
+      copy[idx] = { ...copy[idx], selectedForMerge: !copy[idx].selectedForMerge };
       return copy;
     });
   }
 
-  /**
-   * Remove a file by index (asks for confirmation)
-   */
+  function selectAllForMerge() {
+    setFileItems((prev) => prev.map((f) => ({ ...f, selectedForMerge: true })));
+  }
+
+  function clearAllSelection() {
+    setFileItems((prev) => prev.map((f) => ({ ...f, selectedForMerge: false })));
+  }
+
+  // ---------- Remove ----------
   function removeFile(idx) {
     if (idx === null || idx === undefined) return;
     const file = fileItems[idx];
@@ -130,18 +133,35 @@ export default function App() {
     // update selection
     setSelectedIndex((prevSel) => {
       if (prevSel === null) return null;
-      if (idx < prevSel) return prevSel - 1; // index removed before current selection
+      if (idx < prevSel) return prevSel - 1;
       if (idx === prevSel) {
-        // If we removed the currently selected file, select the next file if exists, otherwise previous, else null
         const newLength = fileItems.length - 1;
         if (newLength <= 0) return null;
-        if (idx <= newLength - 1) return idx; // select file that shifted into this index
-        return newLength - 1; // select last
+        if (idx <= newLength - 1) return idx;
+        return newLength - 1;
       }
       return prevSel;
     });
   }
 
+  // ---------- Page reorder within a file ----------
+  function onDragEnd(result) {
+    if (!result.destination) return;
+    if (selectedIndex === null) return;
+
+    setFileItems((prev) => {
+      const copy = [...prev];
+      const file = copy[selectedIndex];
+      if (!file || !file.pages) return prev;
+      const pages = Array.from(file.pages);
+      const [moved] = pages.splice(result.source.index, 1);
+      pages.splice(result.destination.index, 0, moved);
+      copy[selectedIndex] = { ...file, pages };
+      return copy;
+    });
+  }
+
+  // ---------- Export single file ----------
   async function exportReordered(idx) {
     if (idx === null || idx === undefined) return alert("No file selected.");
     const currentFiles = fileItemsRef.current;
@@ -232,17 +252,111 @@ export default function App() {
     }
   }
 
-  // Render file buttons with a small delete button per file
+  // ---------- Merge selected files ----------
+  async function mergeSelectedFiles() {
+    // Gather selected files in their list order
+    const selected = fileItems.filter((f) => f.selectedForMerge);
+    if (!selected || selected.length < 2) {
+      alert("Select at least 2 files to merge.");
+      return;
+    }
+
+    // Confirm with user
+    const ok = window.confirm(`Merge ${selected.length} files into one PDF?`);
+    if (!ok) return;
+
+    try {
+      const mergedPdf = await PDFDocument.create();
+
+      for (const f of selected) {
+        console.log("Merging file:", f.name);
+        const srcBytes = f.bytes instanceof Uint8Array ? f.bytes : new Uint8Array(f.bytes);
+        const srcPdf = await PDFDocument.load(srcBytes);
+
+        // If user had reordered pages inside f, we must use f.pages order
+        let indicesToCopy;
+        if (f.pages && f.pages.length > 0) {
+          indicesToCopy = f.pages.map((p) => {
+            const n = Number(p.pageNumber);
+            return Number.isFinite(n) ? n - 1 : -1;
+          });
+        } else {
+          // fallback: all pages in original order
+          indicesToCopy = Array.from({ length: srcPdf.getPageCount() }, (_, i) => i);
+        }
+
+        // defensive validation
+        const srcPageCount = srcPdf.getPageCount();
+        const invalidIndex = indicesToCopy.find((i) => i < 0 || i >= srcPageCount);
+        if (invalidIndex !== undefined) {
+          console.error("mergeSelectedFiles: invalid page index for file", f.name, "index:", invalidIndex);
+          alert(`Merge aborted: invalid page index in file ${f.name}.`);
+          return;
+        }
+
+        const copied = await mergedPdf.copyPages(srcPdf, indicesToCopy);
+        for (const p of copied) mergedPdf.addPage(p);
+      }
+
+      const outBytes = await mergedPdf.save({ useObjectStreams: false });
+      const outLen = outBytes && (outBytes.length || outBytes.byteLength) ? (outBytes.length || outBytes.byteLength) : 0;
+      console.log("merge outLen:", outLen);
+
+      if (!outLen || outLen === 0) {
+        throw new Error("Merged PDF is empty.");
+      }
+
+      // Add merged PDF to file list
+      const mergedName = `merged-${Date.now()}.pdf`;
+      const mergedId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const mergedPages = []; // need to compute page count from outBytes
+      try {
+        const mergedPdfDoc = await PDFDocument.load(outBytes);
+        const mergedCount = mergedPdfDoc.getPageCount();
+        for (let i = 1; i <= mergedCount; i++) mergedPages.push({ pageNumber: i });
+      } catch (e) {
+        // if load fails, fallback to empty placeholder
+        console.warn("Could not reload merged PDF to inspect pages:", e);
+      }
+      const mergedItem = { id: mergedId, name: mergedName, bytes: outBytes instanceof Uint8Array ? outBytes : new Uint8Array(outBytes), pages: mergedPages, totalPages: mergedPages.length, selectedForMerge: false };
+
+      setFileItems((prev) => {
+        // append merged file at the end
+        return [...prev, mergedItem];
+      });
+
+      // Select new merged file
+      setSelectedIndex((_) => fileItems.length); // new index is old length (append)
+      // Offer download immediately
+      const blob = new Blob([outBytes], { type: "application/pdf" });
+      try {
+        saveAs(blob, mergedName);
+      } catch (saErr) {
+        const url = URL.createObjectURL(blob);
+        window.open(url);
+      }
+
+      alert(`Merged ${selected.length} files into ${mergedName} and added to list.`);
+    } catch (err) {
+      console.error("mergeSelectedFiles error:", err);
+      alert("Merge failed: " + (err && err.message ? err.message : String(err)));
+    }
+  }
+
+  // ---------- Helpers ----------
   function renderFileButtons() {
     return fileItems.map((f, i) => (
       <div key={f.id} style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 8, marginBottom: 8 }}>
-        <button
-          onClick={() => onSelect(i)}
-          className="btn btn-ghost"
-          style={{ border: i === selectedIndex ? "2px solid #2563eb" : "1px solid #e5e7eb" }}
-        >
-          {f.name} ({f.totalPages})
-        </button>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <input type="checkbox" checked={!!f.selectedForMerge} onChange={() => toggleSelectForMerge(i)} />
+          <button
+            onClick={() => setSelectedIndex(i)}
+            className="btn btn-ghost"
+            style={{ border: i === selectedIndex ? "2px solid #2563eb" : "1px solid #e5e7eb" }}
+          >
+            {f.name} ({f.totalPages})
+          </button>
+        </label>
         <button
           onClick={() => removeFile(i)}
           className="btn"
@@ -255,11 +369,17 @@ export default function App() {
     ));
   }
 
+  const selectedCount = fileItems.filter((f) => f.selectedForMerge).length;
+
   return (
     <div className="container">
-      <div className="header">
-        <h1>Doc Customizer — Stable MVP</h1>
-        <div className="toolbar">
+      <div className="header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <div>
+          <h1>Doc Customizer — Merge + Reorder</h1>
+          <div style={{ fontSize: 13, color: "#6b7280" }}>Upload PDFs, reorder pages, export or merge files.</div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input
             ref={inputRef}
             type="file"
@@ -271,21 +391,35 @@ export default function App() {
           <button className="btn btn-primary" onClick={() => inputRef.current.click()}>
             Upload PDF
           </button>
+
+          <button className="btn" onClick={selectAllForMerge} title="Select all files for merging">
+            Select all
+          </button>
+          <button className="btn" onClick={clearAllSelection} title="Clear selection">
+            Clear selection
+          </button>
+
+          <button
+            className="btn btn-primary"
+            onClick={mergeSelectedFiles}
+            disabled={selectedCount < 2}
+            title={selectedCount < 2 ? "Select at least 2 files to merge" : `Merge ${selectedCount} files`}
+          >
+            Merge Selected ({selectedCount})
+          </button>
         </div>
       </div>
 
-      <div className="files-row">{fileItems.length === 0 ? <div className="notice">No files yet — upload a PDF to get started.</div> : renderFileButtons()}</div>
+      <div className="files-row" style={{ marginTop: 12, marginBottom: 12 }}>
+        {fileItems.length === 0 ? <div className="notice">No files yet — upload a PDF to get started.</div> : renderFileButtons()}
+      </div>
 
       {selectedIndex !== null && fileItems[selectedIndex] && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <strong>{fileItems[selectedIndex].name}</strong>
             <div style={{ display: "flex", gap: 8 }}>
-              <button
-                className="btn btn-primary"
-                onClick={() => exportReordered(selectedIndex)}
-                style={{ marginRight: 8 }}
-              >
+              <button className="btn btn-primary" onClick={() => exportReordered(selectedIndex)} style={{ marginRight: 8 }}>
                 Export reordered PDF
               </button>
               <button
