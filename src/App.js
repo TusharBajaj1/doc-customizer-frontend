@@ -2,16 +2,18 @@ import React, { useState, useRef, useEffect } from "react";
 import { PDFDocument } from "pdf-lib";
 import { saveAs } from "file-saver";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+/**
+ * Simple, robust frontend-only PDF reorderer using pdf-lib.
+ * - No pdfjs / canvas / worker required (avoids worker/CSP issues).
+ * - Shows page placeholders (Page 1, Page 2...) and allows drag to reorder.
+ * - Exports reordered PDF using pdf-lib with defensive checks.
+ *
+ * Limitations: No thumbnails (visual previews). This keeps the build stable.
+ */
 
-/** CONFIG */
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB
-const RENDER_LIMIT = 30; // render only first N thumbnails immediately per file
-const THUMB_SCALE = 0.6; // thumbnail scale
 
-/** Utility: read File -> Uint8Array */
 function readAsUint8Array(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -29,33 +31,18 @@ function readAsUint8Array(file) {
   });
 }
 
-/** Render a single thumbnail for a pageNumber from pdf bytes */
-async function renderThumbForPage(pdfData, pageNumber, scale = THUMB_SCALE) {
-  const loading = pdfjsLib.getDocument({ data: pdfData });
-  const pdf = await loading.promise;
-  const page = await pdf.getPage(pageNumber);
-  const viewport = page.getViewport({ scale });
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.ceil(viewport.width);
-  canvas.height = Math.ceil(viewport.height);
-  const ctx = canvas.getContext("2d");
-  await page.render({ canvasContext: ctx, viewport }).promise;
-  return canvas.toDataURL("image/png");
-}
-
 export default function App() {
-  // fileItems: [{ id, name, bytes: Uint8Array, pages: [{ pageNumber, thumb|null }], isRendering }]
+  // fileItems: [{ id, name, bytes: Uint8Array, pages: [{ pageNumber }], totalPages }]
   const [fileItems, setFileItems] = useState([]);
   const fileItemsRef = useRef([]);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const inputRef = useRef();
 
-  // Keep ref in sync to avoid stale closures during async tasks
+  // keep ref in sync to avoid stale closures
   useEffect(() => {
     fileItemsRef.current = fileItems;
   }, [fileItems]);
 
-  /** handle file uploads one by one */
   async function handleFiles(files) {
     const arr = Array.from(files || []);
     if (!arr.length) return;
@@ -76,10 +63,232 @@ export default function App() {
         continue;
       }
 
-      // get page count
-      let pdf;
+      // Use pdf-lib to load PDF and get page count
+      let existingPdf;
       try {
-        const loading = pdfjsLib.getDocument({ data: bytes });
-        pdf = await loading.promise;
+        existingPdf = await PDFDocument.load(bytes);
       } catch (err) {
-        console.error("pdfjs failed to load PDF", err);
+        console.error("pdf-lib failed to load PDF:", err);
+        alert(`Cannot load ${f.name}. It may be corrupted or encrypted.`);
+        continue;
+      }
+
+      const totalPages = existingPdf.getPageCount ? existingPdf.getPageCount() : existingPdf.getPages().length;
+      if (!totalPages || totalPages <= 0) {
+        alert(`PDF ${f.name} appears to have no pages.`);
+        continue;
+      }
+
+      const pages = [];
+      for (let i = 1; i <= totalPages; i++) pages.push({ pageNumber: i });
+
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const item = { id, name: f.name, bytes, pages, totalPages };
+
+      // insert item into state
+      setFileItems((prev) => {
+        const next = [...prev, item];
+        return next;
+      });
+
+      // select if none
+      setSelectedIndex((prev) => (prev === null ? 0 : prev));
+    }
+  }
+
+  function onSelect(idx) {
+    setSelectedIndex(idx);
+  }
+
+  function onDragEnd(result) {
+    if (!result.destination) return;
+    if (selectedIndex === null) return;
+
+    setFileItems((prev) => {
+      const copy = [...prev];
+      const file = copy[selectedIndex];
+      if (!file || !file.pages) return prev;
+      const pages = Array.from(file.pages);
+      const [moved] = pages.splice(result.source.index, 1);
+      pages.splice(result.destination.index, 0, moved);
+      copy[selectedIndex] = { ...file, pages };
+      return copy;
+    });
+  }
+
+  async function exportReordered(idx) {
+    if (idx === null || idx === undefined) return alert("No file selected.");
+    // read from ref for freshest data
+    const currentFiles = fileItemsRef.current;
+    const item = currentFiles[idx];
+    if (!item) return alert("No file selected.");
+
+    if (!item.pages || item.pages.length === 0) {
+      return alert("No page data found. Try re-uploading.");
+    }
+
+    try {
+      // build zero-based indices according to current order
+      const pageIndices = item.pages.map((p) => {
+        const n = Number(p.pageNumber);
+        return Number.isFinite(n) ? n - 1 : -1;
+      });
+
+      console.log("Export requested. pageIndices:", pageIndices);
+
+      if (pageIndices.some((i) => i < 0)) {
+        console.error("Invalid pageNumbers detected:", item.pages);
+        return alert("Export failed: invalid page numbers.");
+      }
+
+      const srcBytes = item.bytes instanceof Uint8Array ? item.bytes : new Uint8Array(item.bytes);
+      console.log("Source bytes length:", srcBytes.length);
+
+      const existingPdf = await PDFDocument.load(srcBytes);
+      const srcPageCount = existingPdf.getPageCount ? existingPdf.getPageCount() : existingPdf.getPages().length;
+      console.log("Source PDF page count:", srcPageCount);
+
+      const outOfRange = pageIndices.find((i) => i < 0 || i >= srcPageCount);
+      if (outOfRange !== undefined) {
+        console.error("Requested index out of range:", outOfRange, "srcPageCount:", srcPageCount);
+        return alert(`Export failed: requested page does not exist in source (pages: ${srcPageCount}).`);
+      }
+
+      const newPdf = await PDFDocument.create();
+      const copied = await newPdf.copyPages(existingPdf, pageIndices);
+      console.log("copied length:", copied.length, "expected:", pageIndices.length);
+
+      if (!copied || copied.length === 0) {
+        console.error("copyPages returned empty array.");
+        return alert("Export failed: unable to copy pages from source PDF.");
+      }
+
+      copied.forEach((p) => newPdf.addPage(p));
+
+      const outBytes = await newPdf.save({ useObjectStreams: false });
+      const outLen = outBytes && (outBytes.length || outBytes.byteLength) ? (outBytes.length || outBytes.byteLength) : 0;
+      console.log("outBytes length:", outLen);
+
+      if (!outLen || outLen === 0) {
+        console.error("Generated PDF is empty.");
+        throw new Error("Generated PDF is empty.");
+      }
+
+      const blob = new Blob([outBytes], { type: "application/pdf" });
+
+      // Try saveAs, else fallback to opening blob URL
+      try {
+        saveAs(blob, `customized-${item.name}`);
+      } catch (saveErr) {
+        console.warn("saveAs failed, falling back to blob URL", saveErr);
+        const url = URL.createObjectURL(blob);
+        window.open(url);
+      }
+
+      console.log("Export success for", item.name);
+    } catch (err) {
+      console.error("exportReordered error:", err);
+      const message = err && err.message ? err.message : String(err);
+      alert("Export failed: " + message + "\n\nOffering original file as fallback.");
+
+      try {
+        const src = item.bytes;
+        if (src) {
+          const srcUint8 = src instanceof Uint8Array ? src : new Uint8Array(src);
+          const blob = new Blob([srcUint8], { type: "application/pdf" });
+          try {
+            saveAs(blob, `original-${item.name}`);
+          } catch (saErr) {
+            const url = URL.createObjectURL(blob);
+            window.open(url);
+          }
+        }
+      } catch (fallbackErr) {
+        console.error("Fallback download error:", fallbackErr);
+      }
+    }
+  }
+
+  return (
+    <div className="container">
+      <div className="header">
+        <h1>Doc Customizer — Stable MVP</h1>
+        <div className="toolbar">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/pdf"
+            multiple
+            style={{ display: "none" }}
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+          <button className="btn btn-primary" onClick={() => inputRef.current.click()}>
+            Upload PDF
+          </button>
+        </div>
+      </div>
+
+      <div className="files-row">
+        {fileItems.length === 0 ? (
+          <div className="notice">No files yet — upload a PDF to get started.</div>
+        ) : (
+          fileItems.map((f, i) => (
+            <button
+              key={f.id}
+              onClick={() => onSelect(i)}
+              className="btn btn-ghost"
+              style={{ border: i === selectedIndex ? "2px solid #2563eb" : "1px solid #e5e7eb" }}
+            >
+              {f.name} ({f.totalPages} pages)
+            </button>
+          ))
+        )}
+      </div>
+
+      {selectedIndex !== null && fileItems[selectedIndex] && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <strong>{fileItems[selectedIndex].name}</strong>
+            <div>
+              <button
+                className="btn btn-primary"
+                onClick={() => exportReordered(selectedIndex)}
+                style={{ marginRight: 8 }}
+              >
+                Export reordered PDF
+              </button>
+              <button className="btn btn-ghost" onClick={() => alert("Compression / PPTX / DOCX require backend (we can add).")}>
+                Compression (backend)
+              </button>
+            </div>
+          </div>
+
+          <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="pages" direction="horizontal">
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} className="thumbs-scroll" style={{ display: "flex", gap: 12, overflow: "auto", padding: 8 }}>
+                    {(fileItems[selectedIndex].pages || []).map((p, idx) => (
+                      <Draggable key={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`} draggableId={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`} index={idx}>
+                        {(prov) => (
+                          <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps} style={{ width: 140, padding: 8, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, textAlign: "center", flex: "0 0 auto" }}>
+                            <div style={{ height: 100, display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280" }}>
+                              Page {p.pageNumber}
+                            </div>
+                            <div className="page-num" style={{ marginTop: 8 }}>Page {p.pageNumber}</div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+            <div className="notice" style={{ marginTop: 8 }}>Drag page boxes to reorder. Export will produce the reordered PDF.</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
