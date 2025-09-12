@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { PDFDocument } from "pdf-lib";
 import { saveAs } from "file-saver";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -6,7 +6,12 @@ import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-/** Read File -> Uint8Array */
+/** CONFIG */
+const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB
+const RENDER_LIMIT = 30; // render only first N thumbnails immediately per file
+const THUMB_SCALE = 0.6; // thumbnail scale
+
+/** Utility: read File -> Uint8Array */
 function readAsUint8Array(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -24,8 +29,8 @@ function readAsUint8Array(file) {
   });
 }
 
-/** Render a single thumbnail for pageNumber from pdf (Uint8Array) and return dataURL */
-async function renderThumbForPage(pdfData, pageNumber, scale = 0.6) {
+/** Render a single thumbnail for a pageNumber from pdf bytes */
+async function renderThumbForPage(pdfData, pageNumber, scale = THUMB_SCALE) {
   const loading = pdfjsLib.getDocument({ data: pdfData });
   const pdf = await loading.promise;
   const page = await pdf.getPage(pageNumber);
@@ -41,322 +46,40 @@ async function renderThumbForPage(pdfData, pageNumber, scale = 0.6) {
 export default function App() {
   // fileItems: [{ id, name, bytes: Uint8Array, pages: [{ pageNumber, thumb|null }], isRendering }]
   const [fileItems, setFileItems] = useState([]);
+  const fileItemsRef = useRef([]);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const inputRef = useRef();
 
-  /**
-   * On file upload: process files sequentially.
-   * For each file: add to state immediately (with placeholder pages),
-   * then start async thumbnail render which updates that entry.
-   */
+  // Keep ref in sync to avoid stale closures during async tasks
+  useEffect(() => {
+    fileItemsRef.current = fileItems;
+  }, [fileItems]);
+
+  /** handle file uploads one by one */
   async function handleFiles(files) {
     const arr = Array.from(files || []);
-    if (arr.length === 0) return;
+    if (!arr.length) return;
 
     for (const f of arr) {
+      if (!f) continue;
+      if (f.size > MAX_FILE_SIZE_BYTES) {
+        alert(`"${f.name}" is too large. Max ${Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024))} MB allowed.`);
+        continue;
+      }
+
+      let bytes;
       try {
-        // read bytes first
-        const bytes = await readAsUint8Array(f);
-
-        // discover page count synchronously
-        const loading = pdfjsLib.getDocument({ data: bytes });
-        const pdf = await loading.promise;
-        const totalPages = pdf.numPages || 0;
-
-        // create placeholder pages array (thumb=null initially)
-        const pages = [];
-        for (let i = 1; i <= totalPages; i++) {
-          pages.push({ pageNumber: i, thumb: null });
-        }
-
-        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const item = {
-          id,
-          name: f.name,
-          bytes,
-          pages,
-          isRendering: true,
-        };
-
-        // Immediately add to state so subsequent renders can find it
-        setFileItems((prev) => {
-          const combined = [...prev, item];
-          return combined;
-        });
-
-        // set selected to this newly added file if none selected
-        setSelectedIndex((prevSel) => (prevSel === null ? 0 : prevSel));
-
-        // Start async thumbnail rendering (do not block UI)
-        (async () => {
-          try {
-            const thumbs = [];
-            // render sequentially (could be optimized)
-            for (let p = 1; p <= totalPages; p++) {
-              const thumb = await renderThumbForPage(bytes, p, 0.6);
-              thumbs.push(thumb);
-
-              // update progressive thumbnails so user sees them appear
-              setFileItems((prev) => {
-                const copy = [...prev];
-                const idx = copy.findIndex((ci) => ci && ci.id === id);
-                if (idx === -1) return prev; // item not found (shouldn't happen)
-                const newPages = copy[idx].pages.map((pg) => {
-                  if (pg.pageNumber <= thumbs.length) {
-                    return { pageNumber: pg.pageNumber, thumb: thumbs[pg.pageNumber - 1] };
-                  }
-                  return pg;
-                });
-                copy[idx] = { ...copy[idx], pages: newPages, isRendering: p < totalPages };
-                return copy;
-              });
-            }
-
-            // final mark as done
-            setFileItems((prev) => {
-              const copy = [...prev];
-              const idx = copy.findIndex((ci) => ci && ci.id === id);
-              if (idx === -1) return prev;
-              copy[idx] = { ...copy[idx], isRendering: false };
-              return copy;
-            });
-          } catch (thumbErr) {
-            console.error("Thumbnail rendering error for", item.name, thumbErr);
-            // mark rendering false to allow export attempts and show partial thumbs
-            setFileItems((prev) => {
-              const copy = [...prev];
-              const idx = copy.findIndex((ci) => ci && ci.id === id);
-              if (idx === -1) return prev;
-              copy[idx] = { ...copy[idx], isRendering: false };
-              return copy;
-            });
-          }
-        })();
+        bytes = await readAsUint8Array(f);
       } catch (err) {
-        console.error("Failed to read/load PDF:", f.name, err);
-        alert(`Failed to read or load PDF ${f.name}. Try a different file.`);
-      }
-    }
-  }
-
-  function onSelect(idx) {
-    setSelectedIndex(idx);
-    // pages are already created during upload; thumbnails render in background
-  }
-
-  function onDragEnd(result) {
-    if (!result.destination) return;
-    if (selectedIndex === null) return;
-
-    setFileItems((prev) => {
-      const copy = [...prev];
-      const file = copy[selectedIndex];
-      if (!file || !file.pages) return prev;
-      const pages = Array.from(file.pages);
-      const [moved] = pages.splice(result.source.index, 1);
-      pages.splice(result.destination.index, 0, moved);
-      copy[selectedIndex] = { ...file, pages };
-      return copy;
-    });
-  }
-
-  /** Export reordered PDF safely */
-  async function exportReordered(idx) {
-    if (idx === null || idx === undefined) return alert("No file selected.");
-    const item = fileItems[idx];
-    if (!item) return alert("No file selected.");
-
-    if (!item.pages || item.pages.length === 0) {
-      return alert("This file has no page information. Try re-uploading or a different PDF.");
-    }
-
-    if (item.isRendering) {
-      const cont = window.confirm("Thumbnails are still rendering. Export now may lead to incorrect results. Continue anyway?");
-      if (!cont) return;
-    }
-
-    try {
-      // Build zero-based index array using current page order
-      const pageIndices = item.pages.map((p) => {
-        const n = Number(p.pageNumber);
-        return Number.isFinite(n) ? n - 1 : -1;
-      });
-
-      console.log("Export requested. pageIndices:", pageIndices);
-
-      if (pageIndices.some((i) => i < 0)) {
-        console.error("Invalid pageNumbers detected:", item.pages);
-        return alert("Export failed: invalid page numbers in the document.");
+        console.error("Failed to read file bytes", err);
+        alert(`Failed to read file ${f.name}. Try again.`);
+        continue;
       }
 
-      const srcBytes = item.bytes instanceof Uint8Array ? item.bytes : new Uint8Array(item.bytes);
-      console.log("Source bytes length:", srcBytes.length);
-
-      const existingPdf = await PDFDocument.load(srcBytes);
-      const srcPageCount = existingPdf.getPageCount ? existingPdf.getPageCount() : existingPdf.getPages().length;
-      console.log("Source PDF page count:", srcPageCount);
-
-      const outOfRange = pageIndices.find((i) => i < 0 || i >= srcPageCount);
-      if (outOfRange !== undefined) {
-        console.error("Requested index out of range:", outOfRange, "srcPageCount:", srcPageCount);
-        return alert(`Export failed: requested page does not exist in source PDF (pages: ${srcPageCount}).`);
-      }
-
-      const newPdf = await PDFDocument.create();
-      const copied = await newPdf.copyPages(existingPdf, pageIndices);
-      console.log("copied length:", copied.length, "expected:", pageIndices.length);
-
-      if (!copied || copied.length === 0) {
-        console.error("copyPages returned empty list.");
-        return alert("Export failed: unable to copy pages from source PDF.");
-      }
-      copied.forEach((p) => newPdf.addPage(p));
-
-      const outBytes = await newPdf.save({ useObjectStreams: false });
-      const outLen = outBytes && outBytes.length ? outBytes.length : (outBytes && outBytes.byteLength ? outBytes.byteLength : 0);
-      console.log("outBytes length:", outLen);
-
-      if (!outLen || outLen === 0) {
-        console.error("Generated PDF is empty.");
-        throw new Error("Generated PDF is empty.");
-      }
-
-      const blob = new Blob([outBytes], { type: "application/pdf" });
-      saveAs(blob, `customized-${item.name}`);
-      console.log("Export success for", item.name);
-    } catch (err) {
-      console.error("exportReordered error:", err);
-      const message = err && err.message ? err.message : String(err);
-      alert("Export failed: " + message + "\n\nOffering original file as fallback.");
-
+      // get page count
+      let pdf;
       try {
-        const src = item.bytes;
-        if (src) {
-          const srcUint8 = src instanceof Uint8Array ? src : new Uint8Array(src);
-          const blob = new Blob([srcUint8], { type: "application/pdf" });
-          saveAs(blob, `original-${item.name}`);
-          console.log("Fallback download triggered.");
-        }
-      } catch (fallbackErr) {
-        console.error("Fallback download error:", fallbackErr);
-      }
-    }
-  }
-
-  return (
-    <div className="container">
-      <div className="header">
-        <h1>Doc Customizer — Prototype</h1>
-        <div className="toolbar">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="application/pdf"
-            multiple
-            style={{ display: "none" }}
-            onChange={(e) => handleFiles(e.target.files)}
-          />
-          <button className="btn btn-primary" onClick={() => inputRef.current.click()}>
-            Upload PDF
-          </button>
-        </div>
-      </div>
-
-      <div className="files-row">
-        {fileItems.length === 0 ? (
-          <div className="notice">No files yet — upload a PDF to get started.</div>
-        ) : (
-          fileItems.map((f, i) => (
-            <button
-              key={f.id}
-              onClick={() => onSelect(i)}
-              className={`btn btn-ghost`}
-              style={{ border: i === selectedIndex ? "2px solid #2563eb" : "1px solid #e5e7eb" }}
-            >
-              {f.name} {f.isRendering ? " (rendering...)" : ""}
-            </button>
-          ))
-        )}
-      </div>
-
-      {selectedIndex !== null && fileItems[selectedIndex] && (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <strong>{fileItems[selectedIndex].name}</strong>
-            <div>
-              <button
-                className="btn btn-primary"
-                onClick={() => exportReordered(selectedIndex)}
-                style={{ marginRight: 8 }}
-                disabled={fileItems[selectedIndex].isRendering}
-                title={fileItems[selectedIndex].isRendering ? "Wait for thumbnails to finish rendering" : "Export reordered PDF"}
-              >
-                Export reordered PDF
-              </button>
-              <button
-                className="btn btn-ghost"
-                onClick={() => alert("Compression and DOCX/PPTX features require a backend server (not included in this frontend-only MVP).")}
-              >
-                Compression (backend)
-              </button>
-            </div>
-          </div>
-
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="pages" direction="horizontal">
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="thumbs-scroll"
-                    style={{ display: "flex", gap: 12, overflow: "auto", padding: 8 }}
-                  >
-                    {(fileItems[selectedIndex].pages || []).map((p, idx) => (
-                      <Draggable
-                        key={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`}
-                        draggableId={`${fileItems[selectedIndex].id}-page-${p.pageNumber}-${idx}`}
-                        index={idx}
-                      >
-                        {(prov) => (
-                          <div
-                            ref={prov.innerRef}
-                            {...prov.draggableProps}
-                            {...prov.dragHandleProps}
-                            className="thumb"
-                            style={{
-                              width: 160,
-                              padding: 8,
-                              background: "#fff",
-                              border: "1px solid #e5e7eb",
-                              borderRadius: 8,
-                              textAlign: "center",
-                              flex: "0 0 auto",
-                            }}
-                          >
-                            {p.thumb ? (
-                              <img src={p.thumb} style={{ width: "100%", height: 120, objectFit: "contain", borderRadius: 6 }} alt={`page-${p.pageNumber}`} />
-                            ) : (
-                              <div style={{ width: "100%", height: 120, display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280" }}>
-                                {fileItems[selectedIndex].isRendering ? "Rendering..." : "No preview"}
-                              </div>
-                            )}
-                            <div className="page-num" style={{ marginTop: 8 }}>Page {p.pageNumber}</div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-            <div className="notice" style={{ marginTop: 8 }}>
-              Drag thumbnails to reorder pages. Export disabled while thumbnails render.
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        const loading = pdfjsLib.getDocument({ data: bytes });
+        pdf = await loading.promise;
+      } catch (err) {
+        console.error("pdfjs failed to load PDF", err);
