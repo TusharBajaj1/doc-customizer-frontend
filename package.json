@@ -1,25 +1,35 @@
 {
-  "name": "doc-customizer-frontend",
-  "version": "0.1.0",
+  "name": "doc-customizer",
+  "version": "1.0.0",
   "private": true,
-  "dependencies": {
-    "file-saver": "^2.0.5",
-    "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^3.6.172",
-    "react": "^18.2.0",
-    "react-beautiful-dnd": "^13.1.1",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
-  },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.2",
+    "next": "^15.5.29",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
-  "tailwindcss": "^3.4.0",
-  "postcss": "^8.4.0",
-  "autoprefixer": "^10.4.0"
-}
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.6.2",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.29",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^6.0.3"
+  }
 }

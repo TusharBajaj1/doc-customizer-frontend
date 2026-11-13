@@ -1,3 +1,7 @@
 node_modules
 build
-.env.local
+.next
+out
+.env*.local
+next-env.d.ts
+*.tsbuildinfo
