@@ -1,4 +1,4 @@
-# Doc Customizer
+# PDFRookie
 
 A multi-format document toolkit built with Next.js 15, TypeScript and Tailwind.
 
