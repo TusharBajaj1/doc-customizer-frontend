@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Ban, Lock, Zap } from "lucide-react";
 import ToolIcon from "@/components/ToolIcon";
+import FeedbackBox from "@/components/FeedbackBox";
 import { CATEGORIES, TOOLS } from "@/lib/tools";
 
 const PERKS = [
@@ -61,6 +62,10 @@ export default function Home() {
           </div>
         ))}
       </section>
+
+      <div id="feedback" className="mx-auto max-w-3xl scroll-mt-24 px-4">
+        <FeedbackBox tool="general" heading="What do you think of PDFRookie?" />
+      </div>
     </main>
   );
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { TOOLS } from "@/lib/tools";
 
 export const runtime = "nodejs";
 
@@ -7,7 +8,9 @@ const KINDS: Record<string, { label: string; prefix: string }> = {
   tool: { label: "tool-request", prefix: "[Tool request]" },
   feature: { label: "feature-request", prefix: "[Feature request]" },
   bug: { label: "bug", prefix: "[Bug]" },
+  feedback: { label: "feedback", prefix: "[Feedback]" },
 };
+const TOOL_SLUGS = new Set([...TOOLS.map((t) => t.slug), "general"]);
 
 // Basic abuse protection: per-instance, per-IP limit. Good enough to stop casual spam.
 const hits = new Map<string, number[]>();
@@ -29,8 +32,15 @@ export async function POST(req: Request) {
   if (body.website) return NextResponse.json({ ok: true }); // honeypot: bots fill this in, humans never see it
 
   const kind = KINDS[String(body.kind)];
-  const title = String(body.title ?? "").trim().slice(0, 100);
+  let title = String(body.title ?? "").trim().slice(0, 100);
   const details = String(body.details ?? "").trim().slice(0, 2000);
+  if (String(body.kind) === "feedback") {
+    // Feedback comes from the on-page widget: title is generated server-side from validated fields.
+    const tool = String(body.tool ?? "");
+    const rating = body.rating === "up" ? "👍" : body.rating === "down" ? "👎" : "";
+    if (!TOOL_SLUGS.has(tool) || !rating) return NextResponse.json({ error: "Invalid feedback." }, { status: 400 });
+    title = `${rating} ${tool}`;
+  }
   if (!kind || title.length < 3 || details.length < 10) return NextResponse.json({ error: "Please add a title and a few words of detail." }, { status: 400 });
 
   const ip = (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();

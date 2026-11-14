@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ShieldCheck, Server } from "lucide-react";
 import ToolIcon from "@/components/ToolIcon";
+import FeedbackBox from "@/components/FeedbackBox";
 import { getTool, SITE_URL } from "@/lib/tools";
 
 export default function ToolShell({ slug, children }: { slug: string; children: React.ReactNode }) {
@@ -52,6 +53,8 @@ export default function ToolShell({ slug, children }: { slug: string; children: 
           ))}
         </div>
       </section>
+
+      <FeedbackBox tool={slug} />
     </main>
   );
 }
