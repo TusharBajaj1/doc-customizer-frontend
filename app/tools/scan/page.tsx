@@ -14,7 +14,7 @@ const CSS_FILTER: Record<Filter, string> = { original: "none", gray: "grayscale(
 
 /** Pixel-level filter (canvas.filter is unsupported on iOS Safari). */
 async function process(blob: Blob, filter: Filter, maxSide = 2200): Promise<Uint8Array> {
-  const bmp = await createImageBitmap(blob);
+  const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
   const k = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
   const c = document.createElement("canvas");
   c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);

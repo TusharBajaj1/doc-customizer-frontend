@@ -4,11 +4,12 @@ import Dropzone from "@/components/Dropzone";
 import ToolShell from "@/components/ToolShell";
 import { imagesToPdf } from "@/lib/pdfOps";
 import { downloadBytes, readBytes } from "@/lib/download";
+import { bakeOrientationToJpeg, jpegOrientation } from "@/lib/image";
 
 type Img = { id: string; name: string; url: string; file: File };
 
 async function toPngBytes(file: File): Promise<Uint8Array> {
-  const bmp = await createImageBitmap(file);
+  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
   const c = document.createElement("canvas");
   c.width = bmp.width; c.height = bmp.height;
   c.getContext("2d")!.drawImage(bmp, 0, 0);
@@ -29,10 +30,15 @@ export default function ImagesToPdf() {
   async function run() {
     setBusy(true); setError(null);
     try {
-      const prepared = await Promise.all(imgs.map(async ({ file }) =>
-        file.type === "image/jpeg" || file.type === "image/png"
-          ? { bytes: await readBytes(file), type: file.type }
-          : { bytes: await toPngBytes(file), type: "image/png" }));
+      const prepared = await Promise.all(imgs.map(async ({ file }) => {
+        if (file.type === "image/jpeg") {
+          const bytes = await readBytes(file);
+          // Phone photos are often stored sideways with an EXIF rotation flag that PDFs ignore.
+          return jpegOrientation(bytes) > 1 ? { bytes: await bakeOrientationToJpeg(file), type: "image/jpeg" } : { bytes, type: "image/jpeg" };
+        }
+        if (file.type === "image/png") return { bytes: await readBytes(file), type: "image/png" };
+        return { bytes: await toPngBytes(file), type: "image/png" };
+      }));
       downloadBytes(await imagesToPdf(prepared), "images.pdf");
     } catch (e) { setError("Conversion failed: " + (e instanceof Error ? e.message : String(e))); }
     finally { setBusy(false); }
