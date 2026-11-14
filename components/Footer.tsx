@@ -11,13 +11,14 @@ export default function Footer() {
         </div>
         <div>
           <p className="text-sm font-semibold">Tools</p>
-          <ul className="mt-2 space-y-1 text-sm text-slate-500 dark:text-slate-400">
+          <ul className="mt-2 columns-2 space-y-1 text-sm text-slate-500 dark:text-slate-400">
             {TOOLS.map((t) => <li key={t.slug}><Link href={t.href} className="hover:text-brand-600">{t.title}</Link></li>)}
           </ul>
         </div>
         <div>
           <p className="text-sm font-semibold">About</p>
           <ul className="mt-2 space-y-1 text-sm text-slate-500 dark:text-slate-400">
+            <li><Link href="/request" className="hover:text-brand-600">Request a tool or feature</Link></li>
             <li><Link href="/privacy" className="hover:text-brand-600">Privacy</Link></li>
             <li><a href="https://github.com/TusharBajaj1/doc-customizer-frontend" className="hover:text-brand-600">Source on GitHub</a></li>
           </ul>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Ban, Lock, Zap } from "lucide-react";
 import ToolIcon from "@/components/ToolIcon";
-import { TOOLS } from "@/lib/tools";
+import { CATEGORIES, TOOLS } from "@/lib/tools";
 
 const PERKS = [
   { icon: Lock, title: "Private by design", text: "Most tools run in your browser. Your files never leave your device." },
@@ -19,21 +19,36 @@ export default function Home() {
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600 dark:text-slate-300">Merge, reorder, rotate, convert and OCR your documents. The basics shouldn&apos;t cost money or ask for your email.</p>
           <div className="mt-8 flex justify-center gap-3">
             <Link href="/tools/organize" className="btn btn-primary px-5 py-3 text-base">Merge PDFs <ArrowRight size={18} aria-hidden /></Link>
-            <a href="#tools" className="btn px-5 py-3 text-base">All tools</a>
+            <a href="#tools" className="btn px-5 py-3 text-base">All {TOOLS.length} tools</a>
           </div>
         </div>
       </section>
 
-      <section id="tools" className="mx-auto mt-14 max-w-6xl scroll-mt-20 px-4">
-        <h2 className="sr-only">Tools</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {TOOLS.map((t) => (
-            <Link key={t.slug} href={t.href} className="card group transition hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#e0431a]">
-              <ToolIcon tool={t} />
-              <h3 className="mt-4 font-display text-xl font-bold group-hover:text-brand-600">{t.title}</h3>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t.desc}</p>
-            </Link>
+      <section id="tools" className="mx-auto mt-14 max-w-6xl px-4">
+        <h2 className="sr-only">All tools</h2>
+        <div className="space-y-12">
+          {CATEGORIES.map((c) => (
+            <div key={c.id} id={c.id} className="scroll-mt-24">
+              <h3 className="font-display text-2xl font-bold">{c.title}</h3>
+              <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">{c.blurb}</p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {TOOLS.filter((t) => t.category === c.id).map((t) => (
+                  <Link key={t.slug} href={t.href} className="card group transition hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#e0431a]">
+                    <ToolIcon tool={t} />
+                    <h4 className="mt-4 font-display text-xl font-bold group-hover:text-brand-600">{t.title}</h4>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t.desc}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
+        </div>
+        <div className="card mt-12 flex flex-col items-start gap-3 bg-yellow-100 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-900">
+          <div>
+            <p className="font-display text-xl font-bold">Missing a tool?</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">Tell us what you need. Requests shape what we build next.</p>
+          </div>
+          <Link href="/request" className="btn btn-primary">Request a tool</Link>
         </div>
       </section>
 

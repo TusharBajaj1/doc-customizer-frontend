@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FileStack } from "lucide-react";
-import { SITE_NAME, TOOLS } from "@/lib/tools";
+import { CATEGORIES, SITE_NAME } from "@/lib/tools";
 
 export default function Header() {
   return (
@@ -11,7 +11,8 @@ export default function Header() {
           {SITE_NAME}
         </Link>
         <nav className="hidden items-center gap-5 text-sm text-slate-600 dark:text-slate-300 md:flex" aria-label="Tools">
-          {TOOLS.slice(0, 4).map((t) => <Link key={t.slug} href={t.href} className="hover:text-brand-600 hover:underline hover:decoration-2 hover:underline-offset-4">{t.title}</Link>)}
+          {CATEGORIES.map((c) => <Link key={c.id} href={`/#${c.id}`} className="hover:text-brand-600 hover:underline hover:decoration-2 hover:underline-offset-4">{c.title.split(" ")[0]}</Link>)}
+          <Link href="/request" className="btn !py-1">Request a tool</Link>
         </nav>
       </div>
     </header>

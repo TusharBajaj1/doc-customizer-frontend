@@ -7,10 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "predev": "node scripts/copy-wasm.mjs",
+    "prebuild": "node scripts/copy-wasm.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
+    "@neslinesli93/qpdf-wasm": "^0.3.1",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.2",
     "lucide-react": "^1.73.0",

@@ -29,6 +29,15 @@ export async function renderPage(doc: PDFDocumentProxy, pageNumber: number, scal
   return canvas;
 }
 
-export function canvasToBlob(canvas: HTMLCanvasElement, type = "image/png"): Promise<Blob> {
-  return new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), type));
+export function canvasToBlob(canvas: HTMLCanvasElement, type = "image/png", quality?: number): Promise<Blob> {
+  return new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), type, quality));
+}
+
+/** Render a page to JPEG. Returns bytes plus the page's original size in PDF points. */
+export async function renderPageJpeg(doc: PDFDocumentProxy, pageNumber: number, scale: number, quality: number) {
+  const page = await doc.getPage(pageNumber);
+  const pt = page.getViewport({ scale: 1 });
+  const canvas = await renderPage(doc, pageNumber, scale);
+  const blob = await canvasToBlob(canvas, "image/jpeg", quality);
+  return { bytes: new Uint8Array(await blob.arrayBuffer()), width: pt.width, height: pt.height };
 }
