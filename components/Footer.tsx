@@ -3,10 +3,10 @@ import { SITE_NAME, TOOLS } from "@/lib/tools";
 
 export default function Footer() {
   return (
-    <footer className="mt-24 border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+    <footer className="mt-24 border-t-2 border-ink bg-slate-100 dark:border-slate-300 dark:bg-slate-900">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
         <div>
-          <p className="font-bold">{SITE_NAME}</p>
+          <p className="font-display text-lg font-bold">{SITE_NAME}</p>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Free document tools, no signup, no watermarks. Basic things should stay free.</p>
         </div>
         <div>

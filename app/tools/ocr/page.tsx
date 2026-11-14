@@ -47,7 +47,7 @@ export default function OcrPage() {
       {error && <p role="alert" className="alert-error mt-3">{error}</p>}
       {text && (
         <div className="mt-6">
-          <textarea readOnly value={text} className="h-96 w-full rounded-xl border border-slate-300 bg-white p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900" />
+          <textarea readOnly value={text} className="h-96 w-full rounded-lg border border-slate-300 bg-white p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900" />
           <button className="btn btn-primary mt-3" onClick={() => downloadBytes(new TextEncoder().encode(text), "ocr.txt", "text/plain")}>Download .txt</button>
         </div>
       )}

@@ -19,9 +19,9 @@ export default function ToolShell({ slug, children }: { slug: string; children: 
       <div className="mt-4 flex items-start gap-4">
         <ToolIcon tool={tool} />
         <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{tool.title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{tool.title}</h1>
           <p className="mt-1 text-slate-600 dark:text-slate-400">{tool.desc}</p>
-          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border-2 border-ink bg-yellow-100 px-3 py-1 text-xs font-semibold text-ink dark:border-slate-300 dark:bg-slate-800 dark:text-slate-100">
             {tool.server ? <><Server size={14} aria-hidden /> Processed on our server, deleted right after</> : <><ShieldCheck size={14} aria-hidden /> Runs in your browser — files never leave your device</>}
           </p>
         </div>
@@ -34,7 +34,7 @@ export default function ToolShell({ slug, children }: { slug: string; children: 
         <ol className="mt-4 grid gap-4 sm:grid-cols-3">
           {tool.steps.map((s, i) => (
             <li key={i} className="card">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-700/30 dark:text-brand-200">{i + 1}</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-md border-2 border-ink bg-brand-500 text-sm font-bold text-white">{i + 1}</span>
               <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{s}</p>
             </li>
           ))}
@@ -43,7 +43,7 @@ export default function ToolShell({ slug, children }: { slug: string; children: 
 
       <section className="mt-12" aria-labelledby="faq">
         <h2 id="faq" className="text-xl font-semibold">Frequently asked questions</h2>
-        <div className="mt-4 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+        <div className="mt-4 divide-y-2 divide-ink rounded-lg border-2 border-ink bg-white shadow-[4px_4px_0_0_#1c1814] dark:divide-slate-300 dark:border-slate-300 dark:bg-slate-900 dark:shadow-[4px_4px_0_0_#a79c85]">
           {tool.faqs.map((f) => (
             <details key={f.q} className="group p-4">
               <summary className="cursor-pointer list-none font-medium marker:hidden">{f.q}</summary>

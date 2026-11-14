@@ -15,9 +15,9 @@ export default function Dropzone({ accept, multiple = true, label, hint, onFiles
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); onFiles(Array.from(e.dataTransfer.files)); }}
-      className={`group flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed px-6 py-12 text-center transition ${over ? "border-brand-500 bg-brand-50 dark:bg-brand-700/20" : "border-slate-300 bg-white hover:border-brand-500 hover:bg-brand-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"}`}
+      className={`group flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed px-6 py-12 text-center transition ${over ? "border-brand-500 bg-brand-50 dark:bg-slate-800" : "border-ink bg-white hover:bg-brand-50 dark:border-slate-300 dark:bg-slate-900 dark:hover:bg-slate-800"}`}
     >
-      <span className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-brand-600 transition group-hover:scale-105 dark:bg-brand-700/30 dark:text-brand-200">
+      <span className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-md border-2 border-ink bg-brand-500 text-white transition group-hover:-rotate-3 group-hover:scale-105">
         <UploadCloud size={28} aria-hidden />
       </span>
       <p className="text-lg font-semibold">{label}</p>

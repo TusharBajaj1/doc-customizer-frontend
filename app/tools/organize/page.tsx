@@ -73,7 +73,7 @@ export default function OrganizePage() {
 
       {items.length > 0 && (
         <>
-          <div className="sticky top-16 z-20 mt-6 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
+          <div className="sticky top-16 z-20 mt-6 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
             <span className="mr-2 text-sm text-slate-600 dark:text-slate-300">{items.length} pages · {selected.length} selected</span>
             <button className="btn" onClick={() => setItems((p) => p.map((i) => ({ ...i, selected: true })))}>Select all</button>
             <button className="btn" onClick={() => setItems((p) => p.map((i) => ({ ...i, selected: false })))} disabled={!selected.length}>Clear</button>
@@ -94,7 +94,7 @@ export default function OrganizePage() {
                       {(d) => (
                         <div ref={d.innerRef} {...d.draggableProps} {...d.dragHandleProps}
                           onClick={() => patch(it.key, { selected: !it.selected })}
-                          className={`cursor-grab rounded-xl border-2 bg-white p-2 text-center shadow-sm transition hover:shadow-md dark:bg-slate-900 ${it.selected ? "border-brand-500 ring-2 ring-brand-200 dark:ring-brand-700/50" : "border-slate-200 dark:border-slate-800"}`}>
+                          className={`cursor-grab rounded-lg border-2 bg-white p-2 text-center shadow-sm transition hover:shadow-md dark:bg-slate-900 ${it.selected ? "border-brand-500 ring-2 ring-brand-200 dark:ring-brand-700/50" : "border-slate-200 dark:border-slate-800"}`}>
                           {docs[it.fileId] && <PageThumb doc={docs[it.fileId]} pageNumber={it.pageIndex + 1} rotation={it.rotation} />}
                           <div className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400" title={nameOf(it.fileId)}>{idx + 1} · {nameOf(it.fileId)} p{it.pageIndex + 1}</div>
                         </div>
