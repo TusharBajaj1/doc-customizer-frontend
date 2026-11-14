@@ -37,7 +37,7 @@ const B = "bg-sky-200 text-ink dark:bg-sky-300";
 const P = "bg-pink-200 text-ink dark:bg-pink-300";
 const L = "bg-violet-200 text-ink dark:bg-violet-300";
 
-export const TOOLS: Tool[] = [
+const ALL_TOOLS: Tool[] = [
   {
     slug: "organize", href: "/tools/organize", title: "Merge & Organize PDF", category: "organize", icon: "organize", tint: Y,
     seoTitle: "Merge PDF Files & Reorder Pages — Free, No Signup",
@@ -120,9 +120,9 @@ export const TOOLS: Tool[] = [
     slug: "convert", href: "/tools/convert", title: "Office to PDF", category: "convert", icon: "convert", tint: B, server: true,
     seoTitle: "Convert Word, Excel & PowerPoint to PDF — Free",
     desc: "Convert Word, Excel, PowerPoint and OpenDocument files to PDF.",
-    steps: ["Choose one or more documents.", "They are converted on our server.", "Download the PDF."],
+    steps: ["Choose one or more documents.", "They are converted on our converter server.", "Download the PDF."],
     faqs: [
-      { q: "Are my files uploaded?", a: "Yes. Office formats need a server to convert accurately. Files are processed in a temporary folder and deleted immediately after conversion; we do not keep or read them." },
+      { q: "Are my files uploaded?", a: "Yes. Office formats need a server to convert accurately, so the file is sent over an encrypted connection to our converter. It is processed in a temporary folder and deleted immediately afterwards; we do not keep, read or share it." },
       { q: "Which formats are supported?", a: "DOC, DOCX, ODT, RTF, TXT, XLS, XLSX, ODS, CSV, PPT, PPTX and ODP, up to 50 MB each." },
       FREE_Q,
     ],
@@ -184,8 +184,14 @@ export const TOOLS: Tool[] = [
   },
 ];
 
+/** URL of the separately hosted converter service (see /converter). Unset = server-side tools are hidden. */
+export const CONVERTER_URL = (process.env.NEXT_PUBLIC_CONVERTER_URL ?? "").replace(/\/$/, "");
+
+/** Tools shown in menus, the homepage and the sitemap. Server-backed tools appear only when their service is configured. */
+export const TOOLS: Tool[] = ALL_TOOLS.filter((t) => !t.server || CONVERTER_URL);
+
 export const getTool = (slug: string) => {
-  const t = TOOLS.find((x) => x.slug === slug);
+  const t = ALL_TOOLS.find((x) => x.slug === slug);
   if (!t) throw new Error(`Unknown tool: ${slug}`);
   return t;
 };

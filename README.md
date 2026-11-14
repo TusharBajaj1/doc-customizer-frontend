@@ -8,7 +8,7 @@ A multi-format document toolkit built with Next.js 15, TypeScript and Tailwind.
 | Organize | Merge & Organize, Split, Rotate | Browser |
 | Optimize | Compress | Browser |
 | Convert & scan | Images to PDF, PDF to Images, Scan to PDF (camera), OCR | Browser |
-| Convert & scan | Office (Word/Excel/PowerPoint/ODF) to PDF | Server, via LibreOffice (`/api/convert`) |
+| Convert & scan | Office (Word/Excel/PowerPoint/ODF) to PDF | Separate converter service (`/converter`, LibreOffice) |
 | Edit | Page numbers, Watermark | Browser |
 | Security | Protect (AES-256), Unlock | Browser (qpdf WebAssembly) |
 
@@ -24,11 +24,18 @@ npm install
 npm run dev        # http://localhost:3000
 npm run typecheck && npm run lint && npm run build
 ```
-Office conversion needs LibreOffice (`soffice`) on the server's PATH. Use the included `Dockerfile` for a self-contained deployment:
+## Office to PDF converter
+LibreOffice cannot run on Vercel, so conversion lives in a small standalone service in [`/converter`](converter/server.mjs) (Docker, no npm dependencies). The browser sends files straight to it.
+The tool is **hidden from the site until `NEXT_PUBLIC_CONVERTER_URL` is set**, so visitors never see a broken tool.
+
+Deploy on Fly.io (scales to zero, so you pay only while it converts):
 ```bash
-docker build -t doc-customizer . && docker run -p 3000:3000 doc-customizer
+cd converter
+fly launch --no-deploy --copy-config   # pick a unique app name when asked
+fly deploy
 ```
-Note: Vercel-style serverless hosting cannot run LibreOffice; deploy the Docker image (Fly.io, Render, Cloud Run, etc.) if you need that tool.
+Then in Vercel set `NEXT_PUBLIC_CONVERTER_URL=https://<your-app>.fly.dev` and redeploy. The service only accepts requests from the origins in `ALLOWED_ORIGINS` (edit `converter/fly.toml`).
+Limits (env vars): `CONVERT_MAX_BYTES` (50 MB), `CONVERT_TIMEOUT_MS` (60 s), `CONVERT_MAX_CONCURRENT` (2), `CONVERT_RATE_LIMIT` (20 conversions per IP per hour). The same Dockerfile also works on Google Cloud Run or Render.
 
 ## Roadmap
 - PDF to Word/Excel, more OCR languages, searchable-PDF output
