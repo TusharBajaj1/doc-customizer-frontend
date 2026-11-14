@@ -67,14 +67,14 @@ export default function OrganizePage() {
   }
 
   return (
-    <ToolShell title="Organize PDF" desc="Add one or more PDFs, drag pages into any order, rotate or delete them, then export. Click a page to select it.">
+    <ToolShell slug="organize">
       <Dropzone accept="application/pdf" label="Add PDF files" onFiles={addFiles} />
-      {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="alert-error mt-3">{error}</p>}
 
       {items.length > 0 && (
         <>
-          <div className="sticky top-0 z-10 mt-6 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/95 p-3 backdrop-blur">
-            <span className="mr-2 text-sm text-slate-600">{items.length} pages · {selected.length} selected</span>
+          <div className="sticky top-16 z-20 mt-6 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
+            <span className="mr-2 text-sm text-slate-600 dark:text-slate-300">{items.length} pages · {selected.length} selected</span>
             <button className="btn" onClick={() => setItems((p) => p.map((i) => ({ ...i, selected: true })))}>Select all</button>
             <button className="btn" onClick={() => setItems((p) => p.map((i) => ({ ...i, selected: false })))} disabled={!selected.length}>Clear</button>
             <button className="btn" onClick={() => rotateSelected(-90)} disabled={!selected.length}>⟲ Rotate left</button>
@@ -94,9 +94,9 @@ export default function OrganizePage() {
                       {(d) => (
                         <div ref={d.innerRef} {...d.draggableProps} {...d.dragHandleProps}
                           onClick={() => patch(it.key, { selected: !it.selected })}
-                          className={`cursor-grab rounded-lg border-2 bg-white p-2 text-center ${it.selected ? "border-blue-500 ring-2 ring-blue-200" : "border-slate-200"}`}>
+                          className={`cursor-grab rounded-xl border-2 bg-white p-2 text-center shadow-sm transition hover:shadow-md dark:bg-slate-900 ${it.selected ? "border-brand-500 ring-2 ring-brand-200 dark:ring-brand-700/50" : "border-slate-200 dark:border-slate-800"}`}>
                           {docs[it.fileId] && <PageThumb doc={docs[it.fileId]} pageNumber={it.pageIndex + 1} rotation={it.rotation} />}
-                          <div className="mt-1 truncate text-xs text-slate-500" title={nameOf(it.fileId)}>{idx + 1} · {nameOf(it.fileId)} p{it.pageIndex + 1}</div>
+                          <div className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400" title={nameOf(it.fileId)}>{idx + 1} · {nameOf(it.fileId)} p{it.pageIndex + 1}</div>
                         </div>
                       )}
                     </Draggable>

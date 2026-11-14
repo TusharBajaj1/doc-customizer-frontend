@@ -39,9 +39,9 @@ export default function ImagesToPdf() {
   }
 
   return (
-    <ToolShell title="Images to PDF" desc="Combine JPG, PNG, WebP and other images into one PDF, one image per page.">
+    <ToolShell slug="images-to-pdf">
       <Dropzone accept="image/*" label="Add images" onFiles={add} />
-      {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="alert-error mt-3">{error}</p>}
       {imgs.length > 0 && (
         <>
           <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
@@ -49,7 +49,7 @@ export default function ImagesToPdf() {
               <li key={im.id} className="card p-2 text-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={im.url} alt={im.name} className="mx-auto h-32 object-contain" />
-                <div className="mt-1 truncate text-xs text-slate-500">{i + 1}. {im.name}</div>
+                <div className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{i + 1}. {im.name}</div>
                 <div className="mt-2 flex justify-center gap-1">
                   <button className="btn px-2 py-1" onClick={() => move(i, -1)} aria-label="Move earlier">←</button>
                   <button className="btn px-2 py-1" onClick={() => move(i, 1)} aria-label="Move later">→</button>

@@ -13,6 +13,7 @@
     "@hello-pangea/dnd": "^18.0.1",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.2",
+    "lucide-react": "^1.73.0",
     "next": "^15.5.29",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.10.38",

@@ -30,10 +30,10 @@ export default function PdfToImages() {
   }
 
   return (
-    <ToolShell title="PDF to Images" desc="Export each page of a PDF as a PNG image, delivered as a zip.">
+    <ToolShell slug="pdf-to-images">
       <Dropzone accept="application/pdf" multiple={false} label="Choose a PDF" onFiles={run} />
-      {progress && <p className="mt-3 text-sm text-slate-600">{progress}</p>}
-      {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {progress && <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{progress}</p>}
+      {error && <p role="alert" className="alert-error mt-3">{error}</p>}
     </ToolShell>
   );
 }

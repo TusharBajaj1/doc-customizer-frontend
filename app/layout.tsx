@@ -1,23 +1,28 @@
 import "./globals.css";
-import type { Metadata } from "next";
-import Link from "next/link";
+import type { Metadata, Viewport } from "next";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { SITE_NAME, SITE_URL } from "@/lib/tools";
+
+const description = "Free online PDF and document tools: merge, reorder, rotate, convert and OCR. No signup, no watermarks, and most tools run in your browser so your files stay private.";
 
 export const metadata: Metadata = {
-  title: "Doc Customizer — free PDF & document tools",
-  description: "Merge, reorder, rotate, split and convert documents. Private by default: most tools run entirely in your browser.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: `${SITE_NAME} — Free PDF & Document Tools`, template: `%s | ${SITE_NAME}` },
+  description,
+  openGraph: { type: "website", siteName: SITE_NAME, title: `${SITE_NAME} — Free PDF & Document Tools`, description },
+  twitter: { card: "summary_large_image", title: `${SITE_NAME} — Free PDF & Document Tools`, description },
+  alternates: { canonical: "/" },
 };
+export const viewport: Viewport = { themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f8fafc" }, { media: "(prefers-color-scheme: dark)", color: "#020617" }] };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
-        <header className="border-b border-slate-200 bg-white">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-            <Link href="/" className="text-lg font-bold text-blue-700">Doc Customizer</Link>
-            <a href="https://github.com/TusharBajaj1/doc-customizer-frontend" className="text-sm text-slate-500 hover:text-slate-800">GitHub</a>
-          </div>
-        </header>
-        {children}
+      <body className="flex min-h-screen flex-col font-sans">
+        <Header />
+        <div className="flex-1">{children}</div>
+        <Footer />
       </body>
     </html>
   );

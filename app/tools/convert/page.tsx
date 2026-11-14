@@ -27,10 +27,10 @@ export default function ConvertPage() {
   }
 
   return (
-    <ToolShell title="Office to PDF" desc="Convert Word, Excel, PowerPoint and OpenDocument files to PDF. These files are uploaded to the server for conversion and deleted immediately afterwards.">
+    <ToolShell slug="convert">
       <Dropzone accept={ACCEPT} label="Choose documents" onFiles={run} />
-      {busy && <p className="mt-3 text-sm text-slate-600">Converting {busy}…</p>}
-      {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {busy && <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">Converting {busy}…</p>}
+      {error && <p role="alert" className="alert-error mt-3">{error}</p>}
     </ToolShell>
   );
 }

@@ -1,12 +1,57 @@
 import Link from "next/link";
+import { ChevronLeft, ShieldCheck, Server } from "lucide-react";
+import ToolIcon from "@/components/ToolIcon";
+import { getTool, SITE_URL } from "@/lib/tools";
 
-export default function ToolShell({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
+export default function ToolShell({ slug, children }: { slug: string; children: React.ReactNode }) {
+  const tool = getTool(slug);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "WebApplication", name: tool.title, description: tool.desc, url: `${SITE_URL}${tool.href}`, applicationCategory: "UtilitiesApplication", operatingSystem: "Any", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } },
+      { "@type": "FAQPage", mainEntity: tool.faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
+    ],
+  };
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <Link href="/" className="text-sm text-blue-600 hover:underline">← All tools</Link>
-      <h1 className="mt-2 text-2xl font-bold text-slate-900">{title}</h1>
-      <p className="mb-6 text-slate-600">{desc}</p>
-      {children}
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <Link href="/" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 dark:text-slate-400"><ChevronLeft size={16} aria-hidden /> All tools</Link>
+      <div className="mt-4 flex items-start gap-4">
+        <ToolIcon tool={tool} />
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{tool.title}</h1>
+          <p className="mt-1 text-slate-600 dark:text-slate-400">{tool.desc}</p>
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            {tool.server ? <><Server size={14} aria-hidden /> Processed on our server, deleted right after</> : <><ShieldCheck size={14} aria-hidden /> Runs in your browser — files never leave your device</>}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-8">{children}</div>
+
+      <section className="mt-16" aria-labelledby="how">
+        <h2 id="how" className="text-xl font-semibold">How it works</h2>
+        <ol className="mt-4 grid gap-4 sm:grid-cols-3">
+          {tool.steps.map((s, i) => (
+            <li key={i} className="card">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-700/30 dark:text-brand-200">{i + 1}</span>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{s}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="mt-12" aria-labelledby="faq">
+        <h2 id="faq" className="text-xl font-semibold">Frequently asked questions</h2>
+        <div className="mt-4 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+          {tool.faqs.map((f) => (
+            <details key={f.q} className="group p-4">
+              <summary className="cursor-pointer list-none font-medium marker:hidden">{f.q}</summary>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

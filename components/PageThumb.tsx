@@ -9,7 +9,7 @@ export default function PageThumb({ doc, pageNumber, rotation }: { doc: PDFDocum
     let cancelled = false;
     renderPage(doc, pageNumber, 0.35).then((canvas) => {
       if (cancelled || !host.current) return;
-      canvas.className = "max-h-40 w-auto shadow transition-transform";
+      canvas.className = "max-h-40 w-auto rounded shadow transition-transform";
       canvas.style.transform = `rotate(${rotation}deg)`;
       host.current.replaceChildren(canvas);
     }).catch(() => {});

@@ -41,13 +41,13 @@ export default function OcrPage() {
   }
 
   return (
-    <ToolShell title="OCR" desc="Extract text from scanned PDFs and images (English). Runs in your browser; the language model is downloaded on first use.">
+    <ToolShell slug="ocr">
       <Dropzone accept="application/pdf,image/*" multiple={false} label="Choose a PDF or image" onFiles={run} />
-      {status && <p className="mt-3 text-sm text-slate-600">{status}</p>}
-      {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {status && <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{status}</p>}
+      {error && <p role="alert" className="alert-error mt-3">{error}</p>}
       {text && (
         <div className="mt-6">
-          <textarea readOnly value={text} className="h-96 w-full rounded-lg border border-slate-300 p-3 font-mono text-sm" />
+          <textarea readOnly value={text} className="h-96 w-full rounded-xl border border-slate-300 bg-white p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900" />
           <button className="btn btn-primary mt-3" onClick={() => downloadBytes(new TextEncoder().encode(text), "ocr.txt", "text/plain")}>Download .txt</button>
         </div>
       )}
