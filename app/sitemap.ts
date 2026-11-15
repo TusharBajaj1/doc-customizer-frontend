@@ -2,16 +2,30 @@ export const dynamic = "force-static";
 
 import type { MetadataRoute } from "next";
 import { GUIDES, PUBLISHED } from "@/lib/guides";
+import { LOCALES, localePath } from "@/lib/i18n";
 import { SITE_URL, TOOLS } from "@/lib/tools";
 
+type Page = { path: string; priority: number; lastModified?: string };
+
+const PAGES: Page[] = [
+  { path: "/", priority: 1 },
+  ...TOOLS.map((t) => ({ path: t.href, priority: 0.8 })),
+  { path: "/guides", priority: 0.7 },
+  ...GUIDES.map((g) => ({ path: `/guides/${g.slug}`, priority: 0.6, lastModified: g.published ?? PUBLISHED })),
+  { path: "/about", priority: 0.5 },
+  { path: "/request", priority: 0.4 },
+  { path: "/privacy", priority: 0.3 },
+];
+
+/** One entry per page per enabled language; each lists all its language versions (hreflang) so Google links them together. */
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    { url: SITE_URL, priority: 1 },
-    ...TOOLS.map((t) => ({ url: `${SITE_URL}${t.href}`, priority: 0.8 })),
-    { url: `${SITE_URL}/guides`, priority: 0.7 },
-    ...GUIDES.map((g) => ({ url: `${SITE_URL}/guides/${g.slug}`, lastModified: g.published ?? PUBLISHED, priority: 0.6 })),
-    { url: `${SITE_URL}/about`, priority: 0.5 },
-    { url: `${SITE_URL}/request`, priority: 0.4 },
-    { url: `${SITE_URL}/privacy`, priority: 0.3 },
-  ];
+  const abs = (lang: string, path: string) => (path === "/" && lang === "en" ? SITE_URL : `${SITE_URL}${localePath(lang, path)}`);
+  return PAGES.flatMap((p) =>
+    LOCALES.map((lang) => ({
+      url: abs(lang, p.path),
+      ...(p.lastModified ? { lastModified: p.lastModified } : {}),
+      priority: p.priority,
+      ...(LOCALES.length > 1 ? { alternates: { languages: Object.fromEntries(LOCALES.map((l) => [l, abs(l, p.path)])) } } : {}),
+    })),
+  );
 }

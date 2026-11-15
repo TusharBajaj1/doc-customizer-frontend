@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "predev": "node scripts/copy-wasm.mjs",
     "prebuild": "node scripts/copy-wasm.mjs",
-    "build:app": "node scripts/build-app.mjs"
+    "build:app": "node scripts/build-app.mjs",
+    "i18n:extract": "node --experimental-strip-types --no-warnings scripts/i18n-extract.mjs",
+    "i18n:status": "node scripts/i18n-status.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

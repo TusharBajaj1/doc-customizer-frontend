@@ -239,6 +239,9 @@ export const CONVERTER_URL = (process.env.NEXT_PUBLIC_CONVERTER_URL ?? "").repla
 /** Tools shown in menus, the homepage and the sitemap. Server-backed tools appear only when their service is configured. */
 export const TOOLS: Tool[] = ALL_TOOLS.filter((t) => !t.server || CONVERTER_URL);
 
+/** Every tool, including ones hidden from menus. Used by the translation tooling. */
+export const TOOLS_FOR_I18N = ALL_TOOLS;
+
 export const getTool = (slug: string) => {
   const t = ALL_TOOLS.find((x) => x.slug === slug);
   if (!t) throw new Error(`Unknown tool: ${slug}`);

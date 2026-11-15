@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { UploadCloud } from "lucide-react";
+import { useT } from "@/components/I18nProvider";
 import { inApp, pickNative } from "@/lib/native";
 
 type Props = { accept: string; multiple?: boolean; label: string; hint?: string; onFiles: (files: File[]) => void };
@@ -8,6 +9,7 @@ type Props = { accept: string; multiple?: boolean; label: string; hint?: string;
 export default function Dropzone({ accept, multiple = true, label, hint, onFiles }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
+  const t = useT();
   // In the Android app the native picker is used (see lib/native.ts); on the web the normal file input.
   const open = () => {
     if (inApp()) { void pickNative(accept, multiple).then((files) => { if (files.length) onFiles(files); }); return; }
@@ -27,7 +29,7 @@ export default function Dropzone({ accept, multiple = true, label, hint, onFiles
         <UploadCloud size={28} aria-hidden />
       </span>
       <p className="text-lg font-semibold">{label}</p>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{hint ?? "Drag and drop here, or click to browse"}</p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{hint ?? t("Drag and drop here, or click to browse")}</p>
       <input ref={ref} type="file" hidden accept={accept} multiple={multiple}
         onChange={(e) => { onFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
     </div>

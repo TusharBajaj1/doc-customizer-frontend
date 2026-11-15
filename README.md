@@ -41,3 +41,6 @@ Limits (env vars): `CONVERT_MAX_BYTES` (50 MB), `CONVERT_TIMEOUT_MS` (60 s), `CO
 - PDF to Word/Excel, more OCR languages, searchable-PDF output
 - Accounts, history and cloud storage (optional)
 - Automated tests and CI
+
+## Languages
+English is the default; other languages are built in but switched off until reviewed. See [docs/I18N.md](docs/I18N.md) for how translations work, how to enable a language, and the review checklist.

@@ -2,7 +2,7 @@
 const stone = { 50: "#faf6ee", 100: "#f2ecdf", 200: "#e4dccb", 300: "#cfc5af", 400: "#a79c85", 500: "#7d735f", 600: "#5c5445", 700: "#443d32", 800: "#2b2620", 900: "#1c1814", 950: "#14110e" };
 module.exports = {
   darkMode: "media",
-  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.ts"],
+  content: ["./app/**/*.{ts,tsx}", "./views/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.ts"],
   theme: {
     extend: {
       fontFamily: {

@@ -5,7 +5,10 @@ import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSyn
 import { spawnSync } from "node:child_process";
 
 const STASH = ".app-build-stash";
-const HIDE = ["app/api", "app/og"];
+// With only English enabled there are no language pages to export, and Next refuses an empty list of languages
+// for a static export, so the language routes are set aside too (restored afterwards).
+const ENGLISH_ONLY = (process.env.APP_LOCALES ?? "en").split(",").map((s) => s.trim()).filter((s) => s && s !== "en").length === 0;
+const HIDE = ["app/api", "app/og", ...(ENGLISH_ONLY ? ["app/[lang]"] : [])];
 const key = (p) => p.replaceAll("/", "__");
 
 function restore() {
@@ -29,6 +32,7 @@ try {
     ...process.env,
     APP_EXPORT: "1",
     NEXT_PUBLIC_GA_ID: "", // never ship website analytics inside the app
+    NEXT_PUBLIC_LOCALES: process.env.APP_LOCALES ?? "en", // the app is English-only until its translations are reviewed (set APP_LOCALES to include more)
     NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE ?? "https://www.pdfrookie.org",
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.pdfrookie.org",
   };
