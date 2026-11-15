@@ -13,7 +13,8 @@ const TIMEOUT_MS = Number(process.env.CONVERT_TIMEOUT_MS ?? 60_000);
 const MAX_CONCURRENT = Number(process.env.CONVERT_MAX_CONCURRENT ?? 2);
 const RATE_LIMIT = Number(process.env.CONVERT_RATE_LIMIT ?? 20); // conversions per IP per hour
 const ORIGINS = (process.env.ALLOWED_ORIGINS ?? "").split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);
-const ALLOWED_EXT = new Set([".doc", ".docx", ".odt", ".rtf", ".txt", ".xls", ".xlsx", ".ods", ".csv", ".ppt", ".pptx", ".odp"]);
+// Word-processing formats by default. Add spreadsheets/slides later with e.g. CONVERT_EXTENSIONS=.doc,.docx,.odt,.rtf,.txt,.xls,.xlsx,.ods,.csv,.ppt,.pptx,.odp
+const ALLOWED_EXT = new Set((process.env.CONVERT_EXTENSIONS ?? ".doc,.docx,.odt,.rtf,.txt").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
 
 let active = 0;
 const hits = new Map(); // ip -> timestamps

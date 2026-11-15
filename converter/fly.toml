@@ -6,6 +6,9 @@ primary_region = "iad"
   dockerfile = "Dockerfile"
 
 [env]
+  # File types the converter accepts. Word-type by default; add spreadsheets/slides later, e.g.
+  # CONVERT_EXTENSIONS = ".doc,.docx,.odt,.rtf,.txt,.xls,.xlsx,.ods,.csv,.ppt,.pptx,.odp"
+  CONVERT_EXTENSIONS = ".doc,.docx,.odt,.rtf,.txt"
   # Comma-separated list of sites allowed to call this service.
   ALLOWED_ORIGINS = "https://pdfrookie.org,https://www.pdfrookie.org,https://localapp.pdfrookie.org"
 

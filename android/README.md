@@ -37,7 +37,7 @@ Android's asset packager silently drops folders starting with `_`, so `scripts/b
    npm run build:app          # static export -> android/app/src/main/assets/www
    ```
    Optional environment variables for this build: `NEXT_PUBLIC_API_BASE` (default `https://www.pdfrookie.org`, used by the feedback form),
-   `NEXT_PUBLIC_CONVERTER_URL` (shows the Office-to-PDF tool; the converter's `ALLOWED_ORIGINS` must include `https://localapp.pdfrookie.org`).
+   `NEXT_PUBLIC_CONVERTER_URL` (shows the Word-to-PDF tool; the converter's `ALLOWED_ORIGINS` must include `https://localapp.pdfrookie.org`).
 2. Build the app (Android Studio, or):
    ```bash
    cd android

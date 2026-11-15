@@ -49,7 +49,7 @@ Copy-paste material for Play Console. Review everything against Google's current
 **Do not answer "no data collected" without checking.** The built app includes Google's ML Kit libraries, which pull in Google's
 `datatransport` library and add network permissions. Google says ML Kit can send diagnostic/usage data. In addition, the app can send
 **feedback and tool requests** (text the user types, plus a thumbs rating and the tool name) to pdfrookie.org, where they become public GitHub issues;
-the OCR tool **downloads language data from a public CDN**; and the optional Office converter, if you enable it, **uploads the user's file** to your converter.
+the OCR tool **downloads language data from a public CDN**; and the optional Word-to-PDF converter, if you enable it, **uploads the user's file** to your converter.
 - Read Google's **ML Kit "Data disclosure" page** for the Document Scanner and answer the Data safety form to match
   (it lists which data types the SDK may collect, such as app diagnostics and device/other identifiers, and whether it is optional).
 - Scans and tool results are processed on the device and stay in app-private storage (excluded from cloud backup). The app does not upload scans.

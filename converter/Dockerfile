@@ -1,6 +1,9 @@
 FROM node:22-slim
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-calc libreoffice-impress fonts-liberation fonts-dejavu-core \
+ && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-calc libreoffice-impress \
+      fonts-liberation fonts-dejavu-core \
+      fonts-crosextra-carlito fonts-crosextra-caladea \
+      fonts-noto-core \
  && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home app
 WORKDIR /app

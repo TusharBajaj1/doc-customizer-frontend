@@ -5,7 +5,7 @@ import ToolShell from "@/components/ToolShell";
 import { downloadBytes, MAX_FILE_BYTES } from "@/lib/download";
 import { CONVERTER_URL } from "@/lib/tools";
 
-const ACCEPT = ".doc,.docx,.odt,.rtf,.txt,.xls,.xlsx,.ods,.csv,.ppt,.pptx,.odp";
+const ACCEPT = ".doc,.docx,.odt,.rtf,.txt";
 
 export default function ConvertPage() {
   const [busy, setBusy] = useState<string | null>(null);
@@ -30,10 +30,10 @@ export default function ConvertPage() {
   }
 
   return (
-    <ToolShell slug="convert">
+    <ToolShell slug="word-to-pdf">
       {CONVERTER_URL ? (
         <>
-          <Dropzone accept={ACCEPT} label="Choose documents" onFiles={run} />
+          <Dropzone accept={ACCEPT} label="Choose Word documents" onFiles={run} />
           {busy && <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">Converting {busy}… the first file can take a few seconds while the converter wakes up.</p>}
           {error && <p role="alert" className="alert-error mt-3">{error}</p>}
         </>

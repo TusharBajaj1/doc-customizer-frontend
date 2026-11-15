@@ -8,11 +8,11 @@ A multi-format document toolkit built with Next.js 15, TypeScript and Tailwind.
 | Organize | Merge & Organize, Split, Rotate | Browser |
 | Optimize | Compress | Browser |
 | Convert & scan | Images to PDF, PDF to Images, Scan to PDF (camera), OCR | Browser |
-| Convert & scan | Office (Word/Excel/PowerPoint/ODF) to PDF | Separate converter service (`/converter`, LibreOffice) |
+| Convert & scan | Word to PDF (DOCX, DOC, ODT, RTF, TXT) | Separate converter service (`/converter`, LibreOffice) |
 | Edit | Page numbers, Watermark | Browser |
 | Security | Protect (AES-256), Unlock | Browser (qpdf WebAssembly) |
 
-Everything except Office conversion runs entirely client-side, so files never leave the user's device.
+Everything except Word conversion runs entirely client-side, so files never leave the user's device.
 
 ## Feature requests
 `/request` lets visitors ask for tools or features. Submissions become public GitHub issues labelled `from-website`.
@@ -24,7 +24,7 @@ npm install
 npm run dev        # http://localhost:3000
 npm run typecheck && npm run lint && npm run build
 ```
-## Office to PDF converter
+## Word to PDF converter
 LibreOffice cannot run on Vercel, so conversion lives in a small standalone service in [`/converter`](converter/server.mjs) (Docker, no npm dependencies). The browser sends files straight to it.
 The tool is **hidden from the site until `NEXT_PUBLIC_CONVERTER_URL` is set**, so visitors never see a broken tool.
 

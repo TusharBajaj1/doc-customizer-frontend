@@ -19,7 +19,7 @@ export type Tool = {
 export const CATEGORIES: { id: CategoryId; title: string; blurb: string }[] = [
   { id: "organize", title: "Organize", blurb: "Merge, split, reorder and rotate pages" },
   { id: "optimize", title: "Optimize", blurb: "Make files smaller and easier to share" },
-  { id: "convert", title: "Convert & scan", blurb: "Move between PDFs, images, Office files and text" },
+  { id: "convert", title: "Convert & scan", blurb: "Move between PDFs, images, Word documents and text" },
   { id: "edit", title: "Edit", blurb: "Add page numbers and watermarks" },
   { id: "security", title: "Security", blurb: "Lock and unlock PDFs with a password" },
 ];
@@ -140,13 +140,15 @@ const ALL_TOOLS: Tool[] = [
     ],
   },
   {
-    slug: "convert", href: "/tools/convert", title: "Office to PDF", category: "convert", icon: "convert", tint: B, server: true,
-    seoTitle: "Convert Word, Excel & PowerPoint to PDF — Free",
-    desc: "Convert Word, Excel, PowerPoint and OpenDocument files to PDF.",
-    steps: ["Choose one or more documents.", "They are converted on our converter server.", "Download the PDF."],
+    slug: "word-to-pdf", href: "/tools/word-to-pdf", title: "Word to PDF", category: "convert", icon: "convert", tint: B, server: true,
+    seoTitle: "Convert Word to PDF Online — DOC, DOCX, Free, No Signup",
+    desc: "Turn Word documents into PDFs that look the same everywhere. Supports DOCX, DOC, ODT, RTF and TXT.",
+    steps: ["Choose one or more Word documents.", "They are converted on our converter server.", "Download the PDF."],
     faqs: [
-      { q: "Are my files uploaded?", a: "Yes. Office formats need a server to convert accurately, so the file is sent over an encrypted connection to our converter. It is processed in a temporary folder and deleted immediately afterwards; we do not keep, read or share it." },
-      { q: "Which formats are supported?", a: "DOC, DOCX, ODT, RTF, TXT, XLS, XLSX, ODS, CSV, PPT, PPTX and ODP, up to 50 MB each." },
+      { q: "Is my document uploaded?", a: "Yes. Converting Word files accurately needs a server, so the file is sent over an encrypted connection to our converter. It is processed in a temporary folder and deleted immediately afterwards; we do not keep, read or share it. Every other tool on this site runs on your device instead." },
+      { q: "Which formats are supported?", a: "DOCX, DOC, ODT, RTF and TXT, up to 50 MB each." },
+      { q: "Will the PDF look like my Word document?", a: "Usually, yes: fonts, tables, images, headers and page breaks are kept. Complex layouts, unusual fonts or documents that rely on macros and some Word-only features can differ slightly, so check the result before sending it." },
+      { q: "What about Excel and PowerPoint?", a: "Not supported yet." },
       FREE_Q,
     ],
   },
