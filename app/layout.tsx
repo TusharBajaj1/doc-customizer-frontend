@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Analytics from "@/components/Analytics";
 import { SITE_NAME, SITE_URL } from "@/lib/tools";
 
 const description = "Free online PDF and document tools: merge, reorder, rotate, convert and OCR. No signup, no watermarks, and most tools run in your browser so your files stay private.";
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <div className="flex-1">{children}</div>
         <Footer />
+        <Analytics />
       </body>
     </html>
   );

@@ -20,6 +20,7 @@ export default function Footer() {
           <ul className="mt-2 space-y-1 text-sm text-slate-500 dark:text-slate-400">
             <li><Link href="/request" className="hover:text-brand-600">Request a tool or feature</Link></li>
             <li><Link href="/#feedback" className="hover:text-brand-600">Send feedback</Link></li>
+            <li><Link href="/about" className="hover:text-brand-600">About</Link></li>
             <li><Link href="/privacy" className="hover:text-brand-600">Privacy</Link></li>
             <li><a href="https://github.com/TusharBajaj1/doc-customizer-frontend" className="hover:text-brand-600">Source on GitHub</a></li>
           </ul>
