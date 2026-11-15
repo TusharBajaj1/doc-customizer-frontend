@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ConsentLink from "@/components/ConsentLink";
 import { SITE_NAME, TOOLS } from "@/lib/tools";
 
 export default function Footer() {
@@ -23,6 +24,7 @@ export default function Footer() {
             <li><Link href="/guides" className="hover:text-brand-600">PDF guides</Link></li>
             <li><Link href="/about" className="hover:text-brand-600">About</Link></li>
             <li><Link href="/privacy" className="hover:text-brand-600">Privacy</Link></li>
+            <ConsentLink />
             <li><a href="https://github.com/TusharBajaj1/doc-customizer-frontend" className="hover:text-brand-600">Source on GitHub</a></li>
           </ul>
         </div>

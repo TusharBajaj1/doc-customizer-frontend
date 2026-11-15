@@ -28,7 +28,7 @@ try {
   const env = {
     ...process.env,
     APP_EXPORT: "1",
-    NEXT_PUBLIC_CF_BEACON_TOKEN: "", // never ship website analytics inside the app
+    NEXT_PUBLIC_GA_ID: "", // never ship website analytics inside the app
     NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE ?? "https://www.pdfrookie.org",
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.pdfrookie.org",
   };
