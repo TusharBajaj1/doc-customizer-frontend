@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.PDFRookie" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+    </style>
+    <color name="paper">#FAF6EE</color>
+    <color name="ic_launcher_background">#E0431A</color>
+</resources>

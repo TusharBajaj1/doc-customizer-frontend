@@ -1,0 +1,13 @@
+# Build output and local config
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+.cxx/
+
+# Signing material: NEVER commit these
+keystore.properties
+*.jks
+*.keystore
