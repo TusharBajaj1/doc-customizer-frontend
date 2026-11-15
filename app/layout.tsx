@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: `${SITE_NAME} — Free PDF & Document Tools`, template: `%s | ${SITE_NAME}` },
   description,
-  openGraph: { type: "website", siteName: SITE_NAME, title: `${SITE_NAME} — Free PDF & Document Tools`, description },
-  twitter: { card: "summary_large_image", title: `${SITE_NAME} — Free PDF & Document Tools`, description },
+  openGraph: { type: "website", siteName: SITE_NAME, title: `${SITE_NAME} — Free PDF & Document Tools`, description, images: [{ url: "/og", width: 1200, height: 630, alt: `${SITE_NAME}: free PDF tools` }] },
+  twitter: { card: "summary_large_image", title: `${SITE_NAME} — Free PDF & Document Tools`, description, images: ["/og"] },
   alternates: { canonical: "/" },
 };
 export const viewport: Viewport = { themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f8fafc" }, { media: "(prefers-color-scheme: dark)", color: "#020617" }] };
