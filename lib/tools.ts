@@ -39,7 +39,7 @@ const L = "bg-violet-200 text-ink dark:bg-violet-300";
 
 const ALL_TOOLS: Tool[] = [
   {
-    slug: "organize", href: "/tools/organize", title: "Merge & Organize PDF", category: "organize", icon: "organize", tint: Y,
+    slug: "merge-pdf", href: "/tools/merge-pdf", title: "Merge & Organize PDF", category: "organize", icon: "organize", tint: Y,
     seoTitle: "Merge PDF Files & Reorder Pages — Free, No Signup",
     desc: "Merge PDFs, drag pages into order, rotate, delete and extract pages with live thumbnails.",
     steps: ["Add one or more PDF files.", "Drag pages into order, click to select, then rotate, delete or extract.", "Click Export PDF to download the result."],

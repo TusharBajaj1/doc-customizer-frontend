@@ -20,7 +20,7 @@ export default function Home() {
           <h1 className="mt-6 text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl">Document tools that <span className="whitespace-nowrap bg-yellow-300 px-2 text-ink [box-decoration-break:clone] dark:bg-yellow-300">stay free.</span></h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600 dark:text-slate-300">Merge, reorder, rotate, convert and OCR your documents. The basics shouldn&apos;t cost money or ask for your email.</p>
           <div className="mt-8 flex justify-center gap-3">
-            <Link href="/tools/organize" className="btn btn-primary px-5 py-3 text-base">Merge PDFs <ArrowRight size={18} aria-hidden /></Link>
+            <Link href="/tools/merge-pdf" className="btn btn-primary px-5 py-3 text-base">Merge PDFs <ArrowRight size={18} aria-hidden /></Link>
             <a href="#tools" className="btn px-5 py-3 text-base">All {TOOLS.length} tools</a>
           </div>
         </div>
