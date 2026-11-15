@@ -26,7 +26,13 @@ export async function GET(req: Request) {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: "#faf6ee", padding: 56, color: "#1c1814", fontFamily: "Liberation" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
-          <div style={{ width: 64, height: 64, display: "flex", alignItems: "center", justifyContent: "center", background: "#f0562b", border: "4px solid #1c1814", borderRadius: 12, color: "#fff", fontSize: 36, fontWeight: 700 }}>P</div>
+          <div style={{ width: 64, height: 64, display: "flex", alignItems: "center", justifyContent: "center", background: "#f0562b", border: "4px solid #1c1814", borderRadius: 12 }}>
+            <svg width="38" height="46" viewBox="28 22 52 64">
+              <path d="M36,30 L60,30 L72,42 L72,78 L36,78 Z" fill="#ffffff" />
+              <path d="M60,30 L60,42 L72,42 Z" fill="#ffd9cc" />
+              <path d="M42,52 H66 V56 H42 Z M42,60 H66 V64 H42 Z M42,68 H58 V72 H42 Z" fill="#e0431a" />
+            </svg>
+          </div>
           <div style={{ marginLeft: 20, fontSize: 40, fontWeight: 700 }}>{SITE_NAME}</div>
         </div>
 
