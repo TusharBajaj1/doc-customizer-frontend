@@ -1,5 +1,9 @@
+// APP_EXPORT=1 builds a fully static copy of the site that the Android app bundles (see scripts/build-app.mjs).
+const isApp = process.env.APP_EXPORT === "1";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(isApp ? { output: "export", trailingSlash: true, images: { unoptimized: true }, distDir: ".next-app" } : {}),
   reactStrictMode: true,
   // Make sure the sharing-image fonts are shipped with the /og function.
   outputFileTracingIncludes: { "/og": ["./app/og/*.ttf"] },

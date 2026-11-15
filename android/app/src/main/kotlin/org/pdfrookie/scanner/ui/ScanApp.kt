@@ -10,9 +10,9 @@ import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,15 +60,19 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import java.time.LocalDateTime
+import org.pdfrookie.scanner.PDF_TOOLS
+import org.pdfrookie.scanner.ToolsActivity
+import org.pdfrookie.scanner.scannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import kotlinx.coroutines.launch
 import org.pdfrookie.core.Names
 import org.pdfrookie.scanner.ScanItem
 import org.pdfrookie.scanner.ScanRepository
-
-private const val SITE_URL = "https://pdfrookie.org"
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -85,43 +89,33 @@ fun ScanApp(repo: ScanRepository) {
     var scans by remember { mutableStateOf(emptyList<ScanItem>()) }
     var renaming by remember { mutableStateOf<ScanItem?>(null) }
     var deleting by remember { mutableStateOf<ScanItem?>(null) }
+    var editing by remember { mutableStateOf<ScanItem?>(null) }
+    // a finished scan waiting for the user to name it (uri, page count)
+    var pendingScan by remember { mutableStateOf<Pair<Uri, Int>?>(null) }
 
     fun refresh() = scope.launch { scans = repo.list() }
     fun say(msg: String) = scope.launch { snackbar.showSnackbar(msg) }
 
     LaunchedEffect(Unit) { scans = repo.list() }
+    // a tool opened from here may have added or replaced a scan
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { refresh() }
 
     val scannerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val pdf = GmsDocumentScanningResult.fromActivityResultIntent(result.data)?.pdf
-            if (pdf != null) {
-                scope.launch {
-                    runCatching { repo.import(pdf.uri) }
-                        .onSuccess { scans = repo.list(); snackbar.showSnackbar("Saved ${pdf.pageCount} page${if (pdf.pageCount == 1) "" else "s"}") }
-                        .onFailure { snackbar.showSnackbar("Could not save the scan. Please try again.") }
-                }
-            }
+            if (pdf != null) pendingScan = pdf.uri to pdf.pageCount
         }
     }
 
     fun startScan() {
         val activity = context.findActivity() ?: return
-        val options = GmsDocumentScannerOptions.Builder()
-            .setGalleryImportAllowed(true)
-            .setPageLimit(30)
-            .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_PDF)
-            .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
-            .build()
-        GmsDocumentScanning.getClient(options)
+        GmsDocumentScanning.getClient(scannerOptions())
             .getStartScanIntent(activity)
             .addOnSuccessListener { sender -> scannerLauncher.launch(IntentSenderRequest.Builder(sender).build()) }
             .addOnFailureListener { say("The scanner isn't available on this device. It needs Google Play services.") }
     }
 
-    fun openMoreTools() {
-        try { CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(SITE_URL)) }
-        catch (e: ActivityNotFoundException) { say("No browser found.") }
-    }
+    fun openMoreTools() = context.startActivity(ToolsActivity.intent(context))
 
     fun open(item: ScanItem) {
         val intent = Intent(Intent.ACTION_VIEW).setDataAndType(repo.shareUri(item), "application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -139,7 +133,7 @@ fun ScanApp(repo: ScanRepository) {
             TopAppBar(
                 title = { Text("PDFRookie Scan") },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                actions = { TextButton(onClick = ::openMoreTools) { Text("More tools") } },
+                actions = { TextButton(onClick = ::openMoreTools) { Text("All tools") } },
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -152,10 +146,54 @@ fun ScanApp(repo: ScanRepository) {
         } else {
             LazyColumn(Modifier.padding(padding).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 96.dp)) {
                 items(scans, key = { it.file.path }) { item ->
-                    ScanRow(item, onOpen = { open(item) }, onShare = { share(item) }, onRename = { renaming = item }, onDelete = { deleting = item })
+                    ScanRow(item, onOpen = { open(item) }, onShare = { share(item) }, onEdit = { editing = item }, onRename = { renaming = item }, onDelete = { deleting = item })
                 }
             }
         }
+    }
+
+    pendingScan?.let { (uri, pages) ->
+        var text by remember(uri) { mutableStateOf(Names.title(Names.scanFileName(LocalDateTime.now()))) }
+        AlertDialog(
+            onDismissRequest = {},
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+            title = { Text("Name your scan") },
+            text = {
+                Column {
+                    Text("$pages page${if (pages == 1) "" else "s"} scanned.", style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true, label = { Text("Name") }, modifier = Modifier.padding(top = 12.dp))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingScan = null
+                    scope.launch {
+                        runCatching { repo.import(uri, text) }
+                            .onSuccess { scans = repo.list(); snackbar.showSnackbar("Saved ${it.title}") }
+                            .onFailure { snackbar.showSnackbar("Could not save the scan. Please try again.") }
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { pendingScan = null }) { Text("Discard", color = MaterialTheme.colorScheme.error) } },
+        )
+    }
+
+    editing?.let { item ->
+        AlertDialog(
+            onDismissRequest = { editing = null },
+            title = { Text("Edit \"${item.title}\"") },
+            text = {
+                LazyColumn {
+                    items(PDF_TOOLS, key = { it.slug }) { tool ->
+                        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { editing = null; context.startActivity(ToolsActivity.intent(context, "tools/${tool.slug}/", item.name)) }.padding(vertical = 8.dp, horizontal = 4.dp)) {
+                            Text(tool.title, style = MaterialTheme.typography.titleMedium)
+                            Text(tool.hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { editing = null }) { Text("Cancel") } },
+        )
     }
 
     renaming?.let { item ->
@@ -195,15 +233,15 @@ private fun EmptyState(modifier: Modifier, onMoreTools: () -> Unit) {
     Column(modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text("No scans yet", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Tap Scan to capture a document. Edges are found automatically, and you can crop, clean up and save pages as a PDF. Everything stays on your phone.",
+            "Tap Scan to capture a document. Edges are found automatically, and you can crop, clean up and save pages as a PDF. Then reorder, crop or delete pages, sign, compress and more with All tools. Everything stays on your phone.",
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
         )
-        OutlinedButton(onClick = onMoreTools) { Text("More free PDF tools") }
+        OutlinedButton(onClick = onMoreTools) { Text("All PDF tools") }
     }
 }
 
 @Composable
-private fun ScanRow(item: ScanItem, onOpen: () -> Unit, onShare: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
+private fun ScanRow(item: ScanItem, onOpen: () -> Unit, onShare: () -> Unit, onEdit: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     var thumb by remember(item.file.path, item.modified) { mutableStateOf<android.graphics.Bitmap?>(null) }
     LaunchedEffect(item.file.path, item.modified) { thumb = renderThumbnail(item.file) }
@@ -223,6 +261,7 @@ private fun ScanRow(item: ScanItem, onOpen: () -> Unit, onShare: () -> Unit, onR
             Row(Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onOpen) { Text("Open") }
                 TextButton(onClick = onShare) { Text("Share") }
+                TextButton(onClick = onEdit) { Text("Edit…") }
             }
         }
         Box {

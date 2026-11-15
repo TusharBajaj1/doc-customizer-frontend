@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 import type { MetadataRoute } from "next";
 import { GUIDES, PUBLISHED } from "@/lib/guides";
 import { SITE_URL, TOOLS } from "@/lib/tools";

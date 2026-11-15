@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { inputCls } from "@/components/Field";
+import { API_BASE } from "@/lib/config";
 
 const REPO_URL = "https://github.com/TusharBajaj1/doc-customizer-frontend";
 
@@ -18,7 +19,7 @@ export default function FeedbackBox({ tool, heading = "Was this helpful?" }: { t
     if (!rating) return;
     setState("sending"); setError("");
     try {
-      const res = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "feedback", tool, rating, details: comment, website }) });
+      const res = await fetch(`${API_BASE}/api/feedback`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "feedback", tool, rating, details: comment, website }) });
       if (res.ok) return setState("done");
       const data = await res.json().catch(() => ({}));
       if (data.error === "not_configured") return setState("fallback");

@@ -7,7 +7,7 @@ primary_region = "iad"
 
 [env]
   # Comma-separated list of sites allowed to call this service.
-  ALLOWED_ORIGINS = "https://pdfrookie.org,https://www.pdfrookie.org"
+  ALLOWED_ORIGINS = "https://pdfrookie.org,https://www.pdfrookie.org,https://localapp.pdfrookie.org"
 
 [http_service]
   internal_port = 8080

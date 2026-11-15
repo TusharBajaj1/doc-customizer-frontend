@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.PDFRookie" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+    </style>
+    <!-- Dark mode: the same name, a dark paper tone -->
+    <color name="paper">#14110E</color>
+</resources>

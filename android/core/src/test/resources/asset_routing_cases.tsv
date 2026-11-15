@@ -1,0 +1,38 @@
+# kind<TAB>input<TAB>expected   ("(empty)" = empty string, "-" = refused/null)
+# resolve: URL path (no leading slash, already URL-decoded) -> bundled file
+resolve	(empty)	index.html
+resolve	index.html	index.html
+resolve	tools/split/	tools/split/index.html
+resolve	tools/split	tools/split/index.html
+resolve	tools/split/index.html	tools/split/index.html
+resolve	tools/split/index.txt	tools/split/index.txt
+resolve	guides/merge-pdfs-without-uploading/	guides/merge-pdfs-without-uploading/index.html
+resolve	_next/static/chunks/app-abc123.js	x_next/static/chunks/app-abc123.js
+resolve	_next/static/media/pdf.worker.min.8f3a.mjs	x_next/static/media/pdf.worker.min.8f3a.mjs
+resolve	wasm/qpdf.wasm	wasm/qpdf.wasm
+resolve	robots.txt	robots.txt
+resolve	404.html	404.html
+resolve	../secret	-
+resolve	a/../../b	-
+resolve	tools/../index.html	-
+resolve	a/./b	-
+resolve	a//b	-
+resolve	a\b	-
+resolve	_next/	x_next/index.html
+resolve	_next/static/chunks/app/_not-found/page-1f2e.js	x_next/static/chunks/app/x_not-found/page-1f2e.js
+resolve	_next/static/_buildManifest.js	x_next/static/_buildManifest.js
+resolve	guides/_private/x.js	guides/x_private/x.js
+resolve	_next/../index.html	-
+# mime: bundled file name -> content type
+mime	index.html	text/html
+mime	_next/static/chunks/app-abc123.js	text/javascript
+mime	_next/static/media/pdf.worker.min.8f3a.mjs	text/javascript
+mime	wasm/qpdf.wasm	application/wasm
+mime	_next/static/css/x.css	text/css
+mime	tools/split/index.txt	text/x-component
+mime	robots.txt	text/plain
+mime	sitemap.xml	application/xml
+mime	_next/static/media/font.woff2	font/woff2
+mime	icon.PNG	image/png
+mime	unknown.xyz	application/octet-stream
+mime	noextension	application/octet-stream

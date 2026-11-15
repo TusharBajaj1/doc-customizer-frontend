@@ -6,6 +6,7 @@ import ToolShell from "@/components/ToolShell";
 import { canvasToBlob } from "@/lib/pdfjs";
 import { downloadBytes } from "@/lib/download";
 import { imagesToPdf } from "@/lib/pdfOps";
+import { inApp, nativeBridge } from "@/lib/native";
 
 type Filter = "original" | "gray" | "bw";
 type Shot = { id: string; blob: Blob; url: string };
@@ -40,8 +41,25 @@ export default function ScanPage() {
   const [camera, setCamera] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [native, setNative] = useState(false);
+  const [scanned, setScanned] = useState<{ bytes: Uint8Array; pages: number } | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
+
+  // Inside the Android app, use Google's native document scanner (edge detection, crop, filters) instead of the web camera.
+  useEffect(() => {
+    setNative(inApp());
+    const onScan = async (e: Event) => {
+      const { path, pages } = (e as CustomEvent<{ path: string; pages: number }>).detail;
+      try {
+        const res = await fetch(path);
+        if (!res.ok) throw new Error("fetch failed");
+        setScanned({ bytes: new Uint8Array(await res.arrayBuffer()), pages });
+      } catch { setError("Could not read the scan. Please try again."); }
+    };
+    window.addEventListener("pdfrookie:scan", onScan);
+    return () => window.removeEventListener("pdfrookie:scan", onScan);
+  }, []);
 
   const stop = useCallback(() => { stream.current?.getTracks().forEach((t) => t.stop()); stream.current = null; setCamera(false); }, []);
   useEffect(() => stop, [stop]);
@@ -80,6 +98,24 @@ export default function ScanPage() {
 
   return (
     <ToolShell slug="scan">
+      {native && (
+        <div className="card mb-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-display text-xl font-bold">Document scanner</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">Automatic edge detection, cropping and clean-up, then save as a PDF.</p>
+          </div>
+          <button className="btn btn-primary" onClick={() => nativeBridge()?.scan()}><Camera size={18} aria-hidden /> Scan with scanner</button>
+        </div>
+      )}
+      {scanned && (
+        <div className="card mb-6 !bg-emerald-100 text-ink" role="status">
+          <p className="font-semibold">Scan ready: {scanned.pages} page{scanned.pages === 1 ? "" : "s"}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button className="btn btn-primary" onClick={() => downloadBytes(scanned.bytes, "scan.pdf")}>Save or share PDF</button>
+            <button className="btn" onClick={() => setScanned(null)}>Dismiss</button>
+          </div>
+        </div>
+      )}
       {camera ? (
         <div className="card !p-3">
           <video ref={video} playsInline muted className="max-h-[60vh] w-full rounded-md bg-black object-contain" />
@@ -89,12 +125,12 @@ export default function ScanPage() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <button className="card flex flex-col items-center justify-center gap-2 py-10 text-center transition hover:-translate-y-0.5" onClick={openCamera}>
+        <div className={`grid gap-4 ${native ? "" : "sm:grid-cols-2"}`}>
+          {!native && <button className="card flex flex-col items-center justify-center gap-2 py-10 text-center transition hover:-translate-y-0.5" onClick={openCamera}>
             <span className="flex h-14 w-14 items-center justify-center rounded-md border-2 border-ink bg-brand-500 text-white"><Camera size={28} aria-hidden /></span>
             <span className="text-lg font-semibold">Open camera</span>
             <span className="text-sm text-slate-500 dark:text-slate-400">Scan pages with your phone or webcam</span>
-          </button>
+          </button>}
           <Dropzone accept="image/*" label="Add photos" hint="Choose existing photos or scans" onFiles={(f) => f.filter((x) => x.type.startsWith("image/")).forEach(addBlob)} />
         </div>
       )}

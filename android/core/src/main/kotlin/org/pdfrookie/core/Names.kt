@@ -19,17 +19,35 @@ object Names {
     fun sanitize(input: String, fallback: String): String {
         var base = input.trim()
         if (base.endsWith(EXTENSION, ignoreCase = true)) base = base.dropLast(EXTENSION.length)
-        base = base
+        return cleanBase(base, fallback.removeSuffix(EXTENSION)) + EXTENSION
+    }
+
+    /** Characters removed or replaced so a name can't escape its folder or be rejected by the file system. */
+    private fun cleanBase(raw: String, fallback: String): String {
+        var base = raw
             .filter { !it.isISOControl() }
-            .replace(Regex("""[\\/:*?"<>|]"""), "_") // characters that are illegal or dangerous in file names
+            .replace(Regex("""[\\/:*?"<>|]"""), "_")
             .replace(Regex("""\s+"""), " ")
             .trimStart('.', ' ', '_')
             .trimEnd('.', ' ')
         if (base.length > MAX_BASE_LENGTH) base = base.take(MAX_BASE_LENGTH).trimEnd('.', ' ')
-        if (base.isEmpty()) {
-            base = fallback.removeSuffix(EXTENSION)
-        }
-        return base + EXTENSION
+        return base.ifEmpty { fallback }
+    }
+
+    private val MIME_EXTENSIONS = mapOf(
+        "application/pdf" to ".pdf", "application/zip" to ".zip", "text/plain" to ".txt",
+        "image/png" to ".png", "image/jpeg" to ".jpg",
+    )
+
+    /**
+     * Safe name for a file saved from a web tool. The extension always comes from the MIME type, never from the caller's text,
+     * so a page can't ask the app to save `evil.apk`. Unknown types are refused (null).
+     */
+    fun downloadName(requested: String, mime: String, fallbackBase: String = "file"): String? {
+        val ext = MIME_EXTENSIONS[mime.substringBefore(';').trim().lowercase()] ?: return null
+        var base = requested.trim()
+        for (e in MIME_EXTENSIONS.values) if (base.endsWith(e, ignoreCase = true)) { base = base.dropLast(e.length); break }
+        return cleanBase(base, fallbackBase) + ext
     }
 
     /** Returns [desired] if free, otherwise `name (2).pdf`, `name (3).pdf`, ... Comparison ignores case. */

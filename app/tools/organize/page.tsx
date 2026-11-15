@@ -8,6 +8,7 @@ import ToolShell from "@/components/ToolShell";
 import { buildPdf, type PageRef, type SourceFile } from "@/lib/pdfOps";
 import { loadPdf } from "@/lib/pdfjs";
 import { downloadBytes, MAX_FILE_BYTES, readBytes } from "@/lib/download";
+import { fetchIncomingPdf } from "@/lib/incoming";
 
 type Item = PageRef & { key: string; selected: boolean };
 
@@ -35,6 +36,13 @@ export default function OrganizePage() {
       }
     }
   }, []);
+
+  // Inside the Android app a saved scan can be opened straight into this tool.
+  useEffect(() => {
+    let alive = true;
+    fetchIncomingPdf().then((f) => { if (alive && f) void addFiles([f]); });
+    return () => { alive = false; };
+  }, [addFiles]);
 
   useEffect(() => () => { Object.values(docs).forEach((d) => d.destroy()); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

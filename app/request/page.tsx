@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Field, { inputCls } from "@/components/Field";
+import { API_BASE } from "@/lib/config";
 
 const REPO_URL = "https://github.com/TusharBajaj1/doc-customizer-frontend";
 type Kind = "tool" | "feature" | "bug";
@@ -17,7 +18,7 @@ export default function RequestPage() {
     e.preventDefault();
     setState("sending"); setError("");
     try {
-      const res = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, title, details, website }) });
+      const res = await fetch(`${API_BASE}/api/feedback`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, title, details, website }) });
       if (res.ok) { setState("done"); return; }
       const data = await res.json().catch(() => ({}));
       if (data.error === "not_configured") { setState("fallback"); return; }

@@ -69,4 +69,22 @@ class NamesTest {
         assertEquals("Invoice", Names.title("Invoice.PDF"))
         assertEquals("No extension", Names.title("No extension"))
     }
+
+    @Test fun downloadName_takesExtensionFromMimeOnly() {
+        assertEquals("Result.pdf", Names.downloadName("Result", "application/pdf"))
+        assertEquals("a.pdf", Names.downloadName("a.pdf", "application/pdf"))
+        assertEquals("pages.zip", Names.downloadName("pages", "application/zip"))
+        assertEquals("report.pdf", Names.downloadName("report", "application/pdf; charset=binary"))
+        // a page cannot make the app save something with a dangerous extension
+        assertEquals("evil.apk.pdf", Names.downloadName("evil.apk", "application/pdf"))
+        assertEquals(null, Names.downloadName("x", "application/vnd.android.package-archive"))
+        assertEquals(null, Names.downloadName("x", "text/html"))
+    }
+
+    @Test fun downloadName_isPathSafeAndNeverEmpty() {
+        assertEquals("x.zip", Names.downloadName("../../x", "application/zip"))
+        assertEquals("file.txt", Names.downloadName("", "text/plain"))
+        assertEquals("file.pdf", Names.downloadName("///", "application/pdf"))
+        assertTrue(Names.downloadName("a".repeat(500), "application/pdf")!!.length <= 84)
+    }
 }

@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- No permissions are declared by this app itself. The scanner UI is provided by Google Play services, so no camera
-         permission is needed, and scans stay in app-private storage.
-         NOTE: the merged manifest still contains INTERNET and ACCESS_NETWORK_STATE. They are added by Google's
-         datatransport library, which ML Kit uses to send diagnostics to Google (see the manifest-merger report).
-         This app's own code never opens a network connection. -->
+    <!-- INTERNET is declared because the bundled tools use it for three things: the OCR language data download, sending feedback
+         to pdfrookie.org, and the optional Office-to-PDF converter. Everything else runs on the device. No camera permission is needed:
+         the scanner UI is provided by Google Play services. Google's ML Kit libraries also add network permissions for their own diagnostics. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="false"
@@ -24,6 +23,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ToolsActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustResize" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

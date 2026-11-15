@@ -27,14 +27,41 @@ class ScanRepository(private val context: Context) {
         pdfs().sortedByDescending { it.lastModified() }.map(::ScanItem)
     }
 
-    /** Copies the scanner's temporary PDF into private storage under a timestamped name. */
-    suspend fun import(source: Uri): ScanItem = withContext(Dispatchers.IO) {
-        val name = Names.unique(Names.scanFileName(LocalDateTime.now()), pdfs().map { it.name })
-        val target = File(dir, name)
+    /** Picks a unique, sanitised file in the scans folder (never outside it). [excluding] is a name that may be overwritten. */
+    private fun targetFile(desired: String?, excluding: String? = null): File {
+        val fallback = Names.scanFileName(LocalDateTime.now())
+        val taken = pdfs().map { it.name }.filter { excluding == null || !it.equals(excluding, ignoreCase = true) }
+        val name = Names.unique(if (desired.isNullOrBlank()) fallback else Names.sanitize(desired, fallback), taken)
+        val file = File(dir, name)
+        check(file.canonicalFile.parentFile == dir.canonicalFile) { "Invalid file name" }
+        return file
+    }
+
+    /** Copies the scanner's temporary PDF into private storage under the chosen (or a timestamped) name. */
+    suspend fun import(source: Uri, desiredName: String? = null): ScanItem = withContext(Dispatchers.IO) {
+        val target = targetFile(desiredName)
         val input = context.contentResolver.openInputStream(source) ?: error("Could not read the scan")
         input.use { src -> target.outputStream().use { src.copyTo(it) } }
         ScanItem(target)
     }
+
+    /** Adds a PDF produced elsewhere (for example by a tool) to the scans list. */
+    suspend fun addFromFile(file: File, desiredName: String): ScanItem = withContext(Dispatchers.IO) {
+        val target = targetFile(desiredName)
+        file.copyTo(target)
+        ScanItem(target)
+    }
+
+    /** Replaces [old] with the contents of [file], under the chosen name. */
+    suspend fun replace(old: ScanItem, file: File, desiredName: String): ScanItem = withContext(Dispatchers.IO) {
+        val target = targetFile(desiredName, excluding = old.name)
+        file.copyTo(target, overwrite = true)
+        if (old.file.canonicalPath != target.canonicalPath) old.file.delete()
+        ScanItem(target)
+    }
+
+    /** Looks up a scan by file name (used to open a scan in a tool). Names come from our own list, but are still checked. */
+    fun find(name: String): ScanItem? = pdfs().firstOrNull { it.name == name }?.let(::ScanItem)
 
     /** Renames a scan. The name is sanitised, made unique, and checked to stay inside the scans folder. */
     suspend fun rename(item: ScanItem, requested: String): ScanItem = withContext(Dispatchers.IO) {

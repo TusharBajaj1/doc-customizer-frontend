@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "predev": "node scripts/copy-wasm.mjs",
-    "prebuild": "node scripts/copy-wasm.mjs"
+    "prebuild": "node scripts/copy-wasm.mjs",
+    "build:app": "node scripts/build-app.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

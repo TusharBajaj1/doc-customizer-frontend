@@ -1,9 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import { FileText, X } from "lucide-react";
 import Dropzone from "@/components/Dropzone";
 import { fmtBytes, MAX_FILE_BYTES, readBytes } from "@/lib/download";
+import { fetchIncomingPdf } from "@/lib/incoming";
 
 export type PickedPdf = { name: string; bytes: Uint8Array; pages: number };
 
@@ -35,6 +36,15 @@ export default function PdfPicker({ onChange, allowEncrypted = false, label = "C
   }
 
   function clear() { setPicked(null); onChange(null); }
+
+  // Inside the Android app a saved scan can be opened straight into this tool.
+  useEffect(() => {
+    let alive = true;
+    fetchIncomingPdf().then((f) => { if (alive && f) void pick([f]); });
+    return () => { alive = false; };
+    // run once on mount; pick is stable enough for this one-shot
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div>

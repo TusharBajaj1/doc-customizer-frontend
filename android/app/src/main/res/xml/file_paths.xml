@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- Only the scans folder is shareable -->
+    <!-- Saved scans (shared from the Scans screen) -->
     <files-path name="scans" path="scans/" />
+    <!-- Files produced by the web tools, shared or opened from the "File ready" dialog -->
+    <cache-path name="out" path="out/" />
 </paths>

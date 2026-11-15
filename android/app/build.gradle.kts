@@ -51,6 +51,15 @@ android {
 
 kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 
+// The website is bundled from generated files (git-ignored). Fail early and clearly if they haven't been built.
+val checkSiteAssets by tasks.registering {
+    val index = layout.projectDirectory.file("src/main/assets/www/index.html")
+    doFirst {
+        if (!index.asFile.exists()) throw GradleException("The bundled website is missing. From the repository root run:  npm install && npm run build:app")
+    }
+}
+tasks.named("preBuild") { dependsOn(checkSiteAssets) }
+
 dependencies {
     implementation(project(":core"))
 
@@ -63,6 +72,8 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.browser:browser:1.8.0")
+    implementation("androidx.webkit:webkit:1.12.1") // WebViewAssetLoader: serves the bundled website
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
 
     // Google's on-device document scanner (edge detection, crop, filters, PDF output). Runs via Google Play services.

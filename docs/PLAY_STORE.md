@@ -14,18 +14,29 @@ Copy-paste material for Play Console. Review everything against Google's current
 > Scan documents to PDF. Free, no account, and everything stays on your phone.
 
 ## Full description
-> PDFRookie Scan turns paper into clean PDFs in a few taps.
+> PDFRookie turns paper into clean PDFs and gives you a full set of free PDF tools, all on your phone.
 >
+> SCAN
 > • Automatic edge detection, cropping and perspective correction
-> • Scan multiple pages into one PDF, or import photos from your gallery
-> • Clean-up filters for sharp, readable text
-> • Rename, open, share or delete your scans
-> • Free. No account, no ads, no watermarks
-> • Private by design: your scans are saved on your phone and are never uploaded by the app
+> • Multi-page scans, or import photos from your gallery
+> • Name your scan as soon as you capture it
 >
-> Need more? Tap "More tools" for free browser-based PDF tools from pdfrookie.org: merge, split, compress, sign, protect and more.
+> EDIT, with no signup and no watermarks
+> • Reorder, rotate, delete and extract pages
+> • Crop, split and merge PDFs
+> • Compress large files
+> • Sign documents with your finger
+> • Add page numbers and watermarks
+> • Password protect and unlock PDFs
+> • Extract text from scans (OCR)
+> • Convert images to PDF and PDF to images
 >
-> The scanner is provided by Google Play services (Google's ML Kit Document Scanner), so it works on most Android phones with Play services and needs no camera permission.
+> PRIVATE BY DESIGN
+> • Your documents are processed on your phone and saved only on your phone
+> • No account needed, no ads
+> • Works offline (except OCR language download and sending feedback)
+>
+> The scanner is provided by Google Play services (Google's ML Kit Document Scanner) and needs no camera permission.
 
 (Edit "no ads" if you later add ads.)
 
@@ -36,10 +47,13 @@ Copy-paste material for Play Console. Review everything against Google's current
 
 ## Data safety form (suggested answers, verify before submitting)
 **Do not answer "no data collected" without checking.** The built app includes Google's ML Kit libraries, which pull in Google's
-`datatransport` library and add the `INTERNET` and `ACCESS_NETWORK_STATE` permissions. Google says ML Kit can send diagnostic/usage data.
+`datatransport` library and add network permissions. Google says ML Kit can send diagnostic/usage data. In addition, the app can send
+**feedback and tool requests** (text the user types, plus a thumbs rating and the tool name) to pdfrookie.org, where they become public GitHub issues;
+the OCR tool **downloads language data from a public CDN**; and the optional Office converter, if you enable it, **uploads the user's file** to your converter.
 - Read Google's **ML Kit "Data disclosure" page** for the Document Scanner and answer the Data safety form to match
   (it lists which data types the SDK may collect, such as app diagnostics and device/other identifiers, and whether it is optional).
-- Your own code collects nothing and uploads no scans. Scans stay in app-private storage and are excluded from cloud backup.
+- Scans and tool results are processed on the device and stay in app-private storage (excluded from cloud backup). The app does not upload scans.
+- Declare the feedback/request text as user-provided content you collect, and say it is public. Declare the converter upload if you enable it.
 - Answer the "is data encrypted in transit" and "can users request deletion" questions according to what the disclosure says
   and how Google handles SDK data.
 - Mismatches between the form and the app's real behaviour can get an app rejected or removed, so verify rather than copy.

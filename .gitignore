@@ -7,3 +7,6 @@ next-env.d.ts
 *.tsbuildinfo
 public/wasm/
 !.env.example
+.next-app
+.app-build-stash
+android/app/src/main/assets/www

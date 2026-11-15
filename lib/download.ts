@@ -1,6 +1,14 @@
 import { saveAs } from "file-saver";
+import { inApp, saveViaNative } from "@/lib/native";
 
 export function downloadBytes(bytes: Uint8Array, name: string, type = "application/pdf") {
+  // Inside the Android app, blob downloads don't work in a WebView, so hand the file to the native shell instead.
+  if (inApp()) {
+    void saveViaNative(bytes, name, type).then((ok) => {
+      if (!ok) alert("Could not save the file. Please try again.");
+    });
+    return;
+  }
   saveAs(new Blob([bytes as BlobPart], { type }), name);
 }
 
