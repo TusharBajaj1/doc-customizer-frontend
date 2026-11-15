@@ -1,5 +1,5 @@
 export type Faq = { q: string; a: string };
-export type IconKey = "organize" | "split" | "rotate" | "compress" | "images" | "export" | "convert" | "ocr" | "scan" | "numbers" | "watermark" | "protect" | "unlock";
+export type IconKey = "sign" | "organize" | "split" | "rotate" | "compress" | "images" | "export" | "convert" | "ocr" | "scan" | "numbers" | "watermark" | "protect" | "unlock";
 export type CategoryId = "organize" | "optimize" | "convert" | "edit" | "security";
 
 export type Tool = {
@@ -136,6 +136,18 @@ const ALL_TOOLS: Tool[] = [
       { q: "Which languages are supported?", a: "English for now. More languages are planned." },
       { q: "How accurate is it?", a: "Clear, high-contrast scans work best. Blurry or handwritten text will be less accurate." },
       PRIVACY_Q,
+    ],
+  },
+  {
+    slug: "sign", href: "/tools/sign", title: "Sign PDF", category: "edit", icon: "sign", tint: P,
+    seoTitle: "Sign a PDF Online — Draw, Type or Upload Your Signature, Free",
+    desc: "Add your signature to a PDF. Draw it, type it or upload an image, then place it anywhere on the page.",
+    steps: ["Choose a PDF.", "Draw, type or upload your signature.", "Drag it into place on the page, then download the signed PDF."],
+    faqs: [
+      { q: "Is this a legally binding signature?", a: "It places an image of your signature on the document, the same as signing a printout and scanning it. Whether that is accepted depends on the document and where you are. It is not a certificate-based digital signature. If a contract needs one, ask the other party what they require." },
+      { q: "Is my signature uploaded or saved?", a: "No. It is created and applied in your browser and is gone when you close the page." },
+      { q: "Can I sign several pages?", a: "Yes. Go to each page and place the signature, or add as many signatures, initials or text boxes as you need." },
+      FREE_Q,
     ],
   },
   {
