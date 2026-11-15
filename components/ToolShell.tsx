@@ -3,7 +3,7 @@ import { ChevronLeft, ShieldCheck, Server } from "lucide-react";
 import ToolIcon from "@/components/ToolIcon";
 import FeedbackBox from "@/components/FeedbackBox";
 import { GUIDES } from "@/lib/guides";
-import { getTool, SITE_URL } from "@/lib/tools";
+import { getTool, SITE_URL, TOOLS } from "@/lib/tools";
 
 export default function ToolShell({ slug, children }: { slug: string; children: React.ReactNode }) {
   const tool = getTool(slug);
@@ -12,9 +12,14 @@ export default function ToolShell({ slug, children }: { slug: string; children: 
     "@context": "https://schema.org",
     "@graph": [
       { "@type": "WebApplication", name: tool.title, description: tool.desc, url: `${SITE_URL}${tool.href}`, applicationCategory: "UtilitiesApplication", operatingSystem: "Any", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } },
+      { "@type": "BreadcrumbList", itemListElement: [
+        { "@type": "ListItem", position: 1, name: "PDFRookie", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: tool.title, item: `${SITE_URL}${tool.href}` },
+      ] },
       { "@type": "FAQPage", mainEntity: tool.faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
     ],
   };
+  const related = [...TOOLS.filter((t) => t.slug !== slug && t.category === tool.category), ...TOOLS.filter((t) => t.slug !== slug && t.category !== tool.category)].slice(0, 4);
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -60,6 +65,15 @@ export default function ToolShell({ slug, children }: { slug: string; children: 
             </details>
           ))}
         </div>
+      </section>
+
+      <section className="mt-12" aria-labelledby="related">
+        <h2 id="related" className="text-xl font-semibold">More free tools</h2>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {related.map((t) => (
+            <li key={t.slug}><Link href={t.href} className="card block transition hover:-translate-y-0.5"><span className="font-semibold">{t.title}</span><span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">{t.desc}</span></Link></li>
+          ))}
+        </ul>
       </section>
 
       <FeedbackBox tool={slug} />

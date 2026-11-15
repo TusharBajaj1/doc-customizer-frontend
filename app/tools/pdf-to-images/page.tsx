@@ -9,6 +9,7 @@ import { downloadBytes, readBytes } from "@/lib/download";
 export default function PdfToImages() {
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [format, setFormat] = useState<"jpg" | "png">("jpg");
 
   async function run(files: File[]) {
     const f = files[0];
@@ -19,8 +20,9 @@ export default function PdfToImages() {
       const zip = new JSZip();
       for (let i = 1; i <= doc.numPages; i++) {
         setProgress(`Rendering page ${i} of ${doc.numPages}…`);
-        const blob = await canvasToBlob(await renderPage(doc, i, 2));
-        zip.file(`page-${String(i).padStart(3, "0")}.png`, blob);
+        const canvas = await renderPage(doc, i, 2);
+        const blob = format === "jpg" ? await canvasToBlob(canvas, "image/jpeg", 0.92) : await canvasToBlob(canvas);
+        zip.file(`page-${String(i).padStart(3, "0")}.${format}`, blob);
       }
       setProgress("Zipping…");
       downloadBytes(await zip.generateAsync({ type: "uint8array" }), f.name.replace(/\.pdf$/i, "") + "-images.zip", "application/zip");
@@ -31,6 +33,11 @@ export default function PdfToImages() {
 
   return (
     <ToolShell slug="pdf-to-images">
+      <fieldset className="mb-4 flex items-center gap-4 text-sm">
+        <legend className="sr-only">Image format</legend>
+        <label className="flex items-center gap-1.5"><input type="radio" name="fmt" checked={format === "jpg"} onChange={() => setFormat("jpg")} /> JPG (smaller files)</label>
+        <label className="flex items-center gap-1.5"><input type="radio" name="fmt" checked={format === "png"} onChange={() => setFormat("png")} /> PNG (lossless)</label>
+      </fieldset>
       <Dropzone accept="application/pdf" multiple={false} label="Choose a PDF" onFiles={run} />
       {progress && <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{progress}</p>}
       {error && <p role="alert" className="alert-error mt-3">{error}</p>}
