@@ -50,7 +50,7 @@ export const GUIDES: Guide[] = [
       { q: "Will the merged PDF have a watermark?", a: "No. The output is only your pages." },
       { q: "Does it work on a phone?", a: "Yes, in any modern mobile browser." },
     ],
-    related: ["split-a-pdf-into-separate-pages", "compress-pdf-keep-text-selectable"],
+    related: ["sign-a-pdf-without-printing", "split-a-pdf-into-separate-pages", "compress-pdf-keep-text-selectable"],
   },
   {
     slug: "compress-pdf-keep-text-selectable",
@@ -227,7 +227,48 @@ export const GUIDES: Guide[] = [
       { q: "Can I recover the password if I forget it?", a: "No. Keep the password and an unprotected original safe." },
       { q: "Is my password sent anywhere?", a: "No. Nothing leaves your device." },
     ],
-    related: ["remove-a-pdf-password-you-know", "merge-pdfs-without-uploading"],
+    related: ["sign-a-pdf-without-printing", "remove-a-pdf-password-you-know", "merge-pdfs-without-uploading"],
+  },
+  {
+    slug: "sign-a-pdf-without-printing",
+    title: "How to sign a PDF without printing it",
+    description: "Add your signature to a PDF by drawing it, typing it or uploading a photo, then place it anywhere on the page. Free, private, no signup.",
+    tool: "sign", cta: "Sign a PDF now",
+    steps: ["Open the Sign PDF tool and choose your PDF.", "Draw, type or upload your signature and click Use this signature.", "Drag it into place and resize it with the corner handle.", "Click Download signed PDF."],
+    body: [
+      { t: "p", text: "You don't need to print, sign and scan a document any more. This tool puts an image of your signature on the page, right in your browser. Your PDF and your signature are not uploaded anywhere." },
+      { t: "h2", text: "Step by step" },
+      { t: "ol", items: [
+        "Open the Sign PDF tool and choose your PDF.",
+        "Create your signature using one of three tabs: Draw, Type or Upload. Click Use this signature when you're happy with it.",
+        "The signature appears in the middle of the page. Drag it to the right spot, and pull the square handle at its corner to change its size.",
+        "Use the arrows above the page to move to other pages. Click a saved signature to place it again, or choose New signature to make another one.",
+        "Click Download signed PDF.",
+      ] },
+      { t: "h2", text: "Three ways to make your signature" },
+      { t: "ul", items: [
+        "Draw: sign in the box with a mouse, trackpad, finger or stylus. On a phone, turning it sideways gives you more room.",
+        "Type: enter your name and choose a handwriting-style font. The fonts available depend on your device.",
+        "Upload: sign on plain white paper, take a clear, well-lit photo, and upload it. Keep Remove the white background ticked so the signature sits cleanly on the page.",
+      ] },
+      { t: "h2", text: "Fixing mistakes" },
+      { t: "ul", items: [
+        "Click a signature on the page to select it. Press the Delete key, or click the small bin icon, to remove it.",
+        "Nothing is saved until you download, so you can move, resize and remove things freely.",
+        "If a signature looks too faint or too large, remove it and place it again, or resize it with the corner handle.",
+      ] },
+      { t: "h2", text: "Is it a legally valid signature?" },
+      { t: "p", text: "This adds an image of your signature to the document, the same as signing a printout and scanning it. Many people and organizations accept that, but rules differ by country and by type of document. It is not a certificate-based digital signature and does not record who signed or when. For contracts, legal filings or anything important, ask the person or organization who requested it what they accept." },
+      { t: "h2", text: "Privacy" },
+      { t: "p", text: "The signature is created and applied in your browser, and it is gone when you close the page. If you want to protect the signed file afterwards, you can lock it with a password." },
+    ],
+    faqs: [
+      { q: "Can I sign more than one page?", a: "Yes. Move to each page and place a signature on it. You can place as many as you like." },
+      { q: "Can I sign with my finger on a phone?", a: "Yes. Use the Draw tab and sign with your finger or a stylus." },
+      { q: "Does it work for filling in dates or names?", a: "You can use the Type tab to create a date or a name as an image and place it like a signature. There is no separate text-box tool yet." },
+      { q: "Will the signed PDF have a watermark?", a: "No. The only thing added is what you place on the page." },
+    ],
+    related: ["password-protect-a-pdf", "merge-pdfs-without-uploading"],
   },
 ];
 
