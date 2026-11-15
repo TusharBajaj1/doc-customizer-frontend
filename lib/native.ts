@@ -13,6 +13,8 @@ type NativeBridge = {
   scanToLibrary(): void;
   /** Open the app's native My scans screen. */
   openScans(): void;
+  /** Native file picker: copies the chosen files into the app and answers with a `pdfrookie:picked` event. */
+  pickFiles(requestId: string, accept: string, multiple: boolean): void;
 };
 
 declare global {
@@ -48,4 +50,27 @@ export async function saveViaNative(bytes: Uint8Array, name: string, mime: strin
     n.cancelSave(token);
     return false;
   }
+}
+
+/**
+ * Pick files through the app's native picker instead of the WebView's built-in one. The app copies each chosen file into its
+ * own storage and serves it back at /__picks/<id>, so the page never depends on WebView's content:// file handling.
+ * Resolves to an empty list if the user cancels or nothing could be read.
+ */
+export function pickNative(accept: string, multiple: boolean): Promise<File[]> {
+  return new Promise((resolve) => {
+    const n = nativeBridge();
+    if (!n) return resolve([]);
+    const requestId = crypto.randomUUID();
+    const done = async (e: Event) => {
+      const d = (e as CustomEvent<{ requestId: string; files: { id: string; name: string; type: string }[] }>).detail;
+      if (d.requestId !== requestId) return;
+      window.removeEventListener("pdfrookie:picked", done);
+      try {
+        resolve(await Promise.all(d.files.map(async (f) => new File([await (await fetch(`/__picks/${f.id}`)).blob()], f.name, { type: f.type }))));
+      } catch { resolve([]); }
+    };
+    window.addEventListener("pdfrookie:picked", done);
+    n.pickFiles(requestId, accept, multiple);
+  });
 }

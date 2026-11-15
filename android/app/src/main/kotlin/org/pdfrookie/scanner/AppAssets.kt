@@ -43,10 +43,23 @@ class ScansHandler(private val dir: File, private val context: Context) : WebVie
     }
 }
 
-fun buildAssetLoader(context: Context, scansDir: File): WebViewAssetLoader =
+/** Serves files the user picked, after the app copied them into its own storage: /__picks/<id> (ids are random UUIDs). */
+class PicksHandler(private val dir: File, private val context: Context) : WebViewAssetLoader.PathHandler {
+    private val safeName = Regex("^[A-Za-z0-9-]{1,64}$")
+
+    override fun handle(path: String): WebResourceResponse? {
+        if (!safeName.matches(path)) return notFound(context)
+        val file = File(dir, path)
+        if (!file.isFile) return notFound(context)
+        return WebResourceResponse("application/octet-stream", null, FileInputStream(file))
+    }
+}
+
+fun buildAssetLoader(context: Context, scansDir: File, picksDir: File): WebViewAssetLoader =
     WebViewAssetLoader.Builder()
         .setDomain(APP_HOST)
         // handlers match by prefix in the order added, so the specific one goes first
         .addPathHandler("/__scans/", ScansHandler(scansDir, context))
+        .addPathHandler("/__picks/", PicksHandler(picksDir, context))
         .addPathHandler("/", SiteHandler(context))
         .build()

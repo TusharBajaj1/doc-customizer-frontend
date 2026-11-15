@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Field, { inputCls } from "@/components/Field";
+import { inApp, pickNative } from "@/lib/native";
 
 export type Signature = { id: string; url: string; png: Uint8Array; w: number; h: number };
 
@@ -132,7 +133,7 @@ export default function SignatureMaker({ onCreate, onCancel }: { onCreate: (s: S
 
       {tab === "upload" && (
         <div className="space-y-3">
-          <Field label="Image of your signature" hint="Sign on white paper, take a clear photo, and upload it."><input type="file" accept="image/*" className={inputCls} onChange={(e) => pickImage(e.target.files?.[0])} /></Field>
+          <Field label="Image of your signature" hint="Sign on white paper, take a clear photo, and upload it."><input type="file" accept="image/*" className={inputCls} onChange={(e) => pickImage(e.target.files?.[0])} onClick={(e) => { if (inApp()) { e.preventDefault(); void pickNative("image/*", false).then((f) => pickImage(f[0])); } }} /></Field>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={removeBg} onChange={(e) => setRemoveBg(e.target.checked)} /> Remove the white background</label>
         </div>
       )}

@@ -55,7 +55,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const url = new URL(req.url, "http://x");
     let rel = decodeURIComponent(url.pathname).replace(/^\//, "");
     let file;
-    if (filesDir && /^__(files|scans)\//.test(rel)) {
+    if (filesDir && /^__picks\/[A-Za-z0-9-]{1,64}$/.test(rel)) {
+      file = path.join(filesDir, rel.replace("__picks/", "")); // stands in for the app's copied picks
+    } else if (filesDir && /^__(files|scans)\//.test(rel)) {
       const n = rel.replace(/^__(files|scans)\//, "");
       file = /^[A-Za-z0-9 ._()-]+\.pdf$/.test(n) ? path.join(filesDir, n) : null;
     } else {
@@ -65,7 +67,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (!file || !file.startsWith(filesDir && /^__/.test(rel) ? filesDir : dir) || !existsSync(file) || !statSync(file).isFile()) {
       res.writeHead(404, { "Content-Type": "text/html" }); return res.end(existsSync(path.join(dir, "404.html")) ? readFileSync(path.join(dir, "404.html")) : "Not found");
     }
-    res.writeHead(200, { "Content-Type": file.endsWith(".pdf") ? "application/pdf" : mimeFor(file) });
+    res.writeHead(200, { "Content-Type": file.endsWith(".pdf") ? "application/pdf" : /__picks/.test(rel) ? "application/octet-stream" : mimeFor(file) });
     res.end(readFileSync(file));
   }).listen(port, () => console.log(`serving ${dir} on http://localhost:${port}`));
 }

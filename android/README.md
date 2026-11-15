@@ -8,7 +8,9 @@ images <-> PDF and more). The tools are bundled inside the app and run on the de
    multi-page, gallery import). Right after capture you **name the scan**, then it is saved to **My scans**.
 2. **My scans** (a native screen) lists saved scans, which can be opened, shared, renamed or deleted. Each has an **Edit...** button that
    opens it straight into any PDF tool; the result can be added to My scans, replace the original, be saved to the device, or be shared.
-3. Anything a tool produces goes through a native **File ready** dialog (with a rename field) because WebViews can't download files themselves.
+3. **Choosing files** (the file boxes in every tool) uses a native picker, not the WebView's built-in one: the app copies each chosen file into its own
+   storage and serves it to the page at `/__picks/<id>`. This avoids WebView's content:// file handling, and a failure is reported on screen with the reason.
+4. Anything a tool produces goes through a native **File ready** dialog (with a rename field) because WebViews can't download files themselves.
 
 > **Status: builds, lints clean and passes its unit tests, but has not been run on a device or emulator.**
 > Verified: `:core:test` (17 tests), `:app:assembleDebug`, `:app:lintDebug` (0 errors), `:app:bundleRelease`, every file of the bundled site is inside the

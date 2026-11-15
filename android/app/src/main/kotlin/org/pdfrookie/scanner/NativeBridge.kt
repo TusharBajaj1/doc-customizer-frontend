@@ -19,6 +19,7 @@ class NativeBridge(private val host: Host) {
         fun startScan()
         fun startScanToLibrary()
         fun openScans()
+        fun pickFiles(requestId: String, accept: String, multiple: Boolean)
         fun onFileReady(file: File, displayName: String, mime: String)
     }
 
@@ -75,6 +76,8 @@ class NativeBridge(private val host: Host) {
     @JavascriptInterface fun scanToLibrary() = host.startScanToLibrary()
 
     @JavascriptInterface fun openScans() = host.openScans()
+
+    @JavascriptInterface fun pickFiles(requestId: String, accept: String, multiple: Boolean) = host.pickFiles(requestId, accept, multiple)
 
     private companion object { const val MAX_BYTES = 150L * 1024 * 1024 }
 }

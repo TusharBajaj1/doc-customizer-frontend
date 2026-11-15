@@ -10,6 +10,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.PermissionRequest
+import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -40,7 +42,11 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import java.io.File
 import java.net.URLEncoder
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import org.pdfrookie.core.Names
 
 /**
@@ -49,6 +55,8 @@ import org.pdfrookie.core.Names
  */
 class ToolsActivity : ComponentActivity(), NativeBridge.Host {
     companion object {
+        private const val MAX_PICKS = 50
+        private const val MAX_PICK_BYTES = 50L * 1024 * 1024
         private const val EXTRA_PATH = "path"
         private const val EXTRA_SCAN = "scan"
 
@@ -70,10 +78,25 @@ class ToolsActivity : ComponentActivity(), NativeBridge.Host {
 
     override val outDir: File get() = File(cacheDir, "out").apply { mkdirs() }
     private val scanInDir: File get() = File(cacheDir, "scan-in").apply { mkdirs() }
+    private val picksDir: File get() = File(cacheDir, "picks").apply { mkdirs() }
+    private var pickRequestId: String? = null
 
     private val chooserLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
-        chooserCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(r.resultCode, r.data))
+        val picked = WebChromeClient.FileChooserParams.parseResult(r.resultCode, r.data)
+        if (r.resultCode == Activity.RESULT_OK && picked.isNullOrEmpty()) toast("The picker didn't return a file. Please try another location.")
+        chooserCallback?.onReceiveValue(picked)
         chooserCallback = null
+    }
+    // Files chosen through the native picker are copied into the app and handed to the page (see pickFiles below).
+    private val pickLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        val id = pickRequestId ?: return@registerForActivityResult
+        pickRequestId = null
+        val data = r.data
+        val uris = if (r.resultCode != Activity.RESULT_OK || data == null) emptyList() else {
+            val clip = data.clipData
+            if (clip != null) (0 until clip.itemCount).mapNotNull { clip.getItemAt(it).uri } else listOfNotNull(data.data)
+        }
+        lifecycleScope.launch { deliverPicks(id, uris.take(MAX_PICKS)) }
     }
     private val saveLauncher = registerForActivityResult(CreateAnyDocument()) { uri ->
         val pending = toSave
@@ -101,14 +124,15 @@ class ToolsActivity : ComponentActivity(), NativeBridge.Host {
 
     private val bridge = NativeBridge(this)
 
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         repo = ScanRepository(applicationContext)
         // old temporary files from earlier sessions
-        runCatching { File(cacheDir, "out").deleteRecursively(); File(cacheDir, "scan-in").deleteRecursively() }
-        assetLoader = buildAssetLoader(this, scanInDir)
+        runCatching { File(cacheDir, "out").deleteRecursively(); File(cacheDir, "scan-in").deleteRecursively(); File(cacheDir, "picks").deleteRecursively() }
+        assetLoader = buildAssetLoader(this, scanInDir, picksDir)
 
         val root = LinearLayout(this).apply { setBackgroundColor(getColor(R.color.paper)) }
         webView = WebView(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT) }
@@ -125,7 +149,7 @@ class ToolsActivity : ComponentActivity(), NativeBridge.Host {
             javaScriptEnabled = true
             domStorageEnabled = true
             allowFileAccess = false
-            allowContentAccess = false
+            allowContentAccess = true // the system file chooser hands the page content:// files; the WebView only ever loads our own pages
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             setSupportZoom(false)
         }
@@ -198,6 +222,64 @@ class ToolsActivity : ComponentActivity(), NativeBridge.Host {
     override fun startScan() { scanToLibrary = false; launchScanner() }
 
     override fun startScanToLibrary() { scanToLibrary = true; launchScanner() }
+
+    override fun pickFiles(requestId: String, accept: String, multiple: Boolean) {
+        runOnUiThread {
+            pickRequestId = requestId
+            try { pickLauncher.launch(pickIntent(accept, multiple)) }
+            catch (e: ActivityNotFoundException) {
+                pickRequestId = null
+                toast("No file picker is available on this device")
+                lifecycleScope.launch { deliverPicks(requestId, emptyList()) }
+            }
+        }
+    }
+
+    /** Builds a "choose a file" intent limited to the types the page asked for (image types, or extensions like .doc and .docx). */
+    private fun pickIntent(accept: String, multiple: Boolean): Intent {
+        val mimes = accept.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+            .mapNotNull { t -> if ('/' in t) t else MimeTypeMap.getSingleton().getMimeTypeFromExtension(t.removePrefix(".").lowercase()) }
+            .distinct()
+        return Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple).apply {
+            if (mimes.size == 1) type = mimes[0] else { type = "*/*"; if (mimes.isNotEmpty()) putExtra(Intent.EXTRA_MIME_TYPES, mimes.toTypedArray()) }
+        }
+    }
+
+    /** Copies each picked file into app storage (size-capped), then tells the page where to fetch them. Reports what failed. */
+    private suspend fun deliverPicks(requestId: String, uris: List<Uri>) {
+        val files = JSONArray()
+        val problems = mutableListOf<String>()
+        withContext(Dispatchers.IO) {
+            for (uri in uris) {
+                var label = "a file"
+                try {
+                    val name = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+                    label = name ?: "a file"
+                    val id = UUID.randomUUID().toString()
+                    val target = File(picksDir, id)
+                    var total = 0L
+                    (contentResolver.openInputStream(uri) ?: error("the file could not be opened")).use { input ->
+                        target.outputStream().use { out ->
+                            val buf = ByteArray(64 * 1024)
+                            while (true) {
+                                val n = input.read(buf)
+                                if (n < 0) break
+                                total += n
+                                if (total > MAX_PICK_BYTES) { target.delete(); error("it is larger than 50 MB") }
+                                out.write(buf, 0, n)
+                            }
+                        }
+                    }
+                    files.put(JSONObject().put("id", id).put("name", name ?: "file").put("type", contentResolver.getType(uri) ?: ""))
+                } catch (e: Exception) {
+                    problems += "$label: ${e.message ?: e.javaClass.simpleName}"
+                }
+            }
+        }
+        if (problems.isNotEmpty()) toast("Could not read ${problems.size} file${if (problems.size == 1) "" else "s"}. ${problems.first()}")
+        val detail = JSONObject().put("requestId", requestId).put("files", files).toString()
+        webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('pdfrookie:picked',{detail:$detail}))", null)
+    }
 
     override fun openScans() { runOnUiThread { startActivity(Intent(this, MainActivity::class.java)) } }
 
