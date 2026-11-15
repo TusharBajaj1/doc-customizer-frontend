@@ -1,8 +1,8 @@
-import { PenLine, Camera, FileOutput, FileText, Hash, Images, Layers, Lock, LockOpen, Minimize2, RotateCw, ScanText, Scissors, Stamp } from "lucide-react";
+import { Crop, PenLine, Camera, FileOutput, FileText, Hash, Trash2, Images, Layers, Lock, LockOpen, Minimize2, RotateCw, ScanText, Scissors, Stamp } from "lucide-react";
 import type { IconKey, Tool } from "@/lib/tools";
 
 const MAP: Record<IconKey, typeof Layers> = {
-  sign: PenLine, organize: Layers, split: Scissors, rotate: RotateCw, compress: Minimize2, images: Images, export: FileOutput,
+  crop: Crop, delete: Trash2, extract: FileOutput, sign: PenLine, organize: Layers, split: Scissors, rotate: RotateCw, compress: Minimize2, images: Images, export: FileOutput,
   convert: FileText, ocr: ScanText, scan: Camera, numbers: Hash, watermark: Stamp, protect: Lock, unlock: LockOpen,
 };
 

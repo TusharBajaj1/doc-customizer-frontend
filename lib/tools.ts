@@ -1,5 +1,5 @@
 export type Faq = { q: string; a: string };
-export type IconKey = "sign" | "organize" | "split" | "rotate" | "compress" | "images" | "export" | "convert" | "ocr" | "scan" | "numbers" | "watermark" | "protect" | "unlock";
+export type IconKey = "crop" | "delete" | "extract" | "sign" | "organize" | "split" | "rotate" | "compress" | "images" | "export" | "convert" | "ocr" | "scan" | "numbers" | "watermark" | "protect" | "unlock";
 export type CategoryId = "organize" | "optimize" | "convert" | "edit" | "security";
 
 export type Tool = {
@@ -46,6 +46,29 @@ const ALL_TOOLS: Tool[] = [
     faqs: [
       { q: "How do I merge PDF files for free?", a: "Add all the PDFs you want to combine, drag the pages into the order you need, and export. There is no watermark, signup or limit." },
       { q: "Can I merge pages from different PDFs into one file?", a: "Yes. Pages from every file you add appear together, so you can interleave them in any order." },
+      PRIVACY_Q,
+    ],
+  },
+  {
+    slug: "delete-pages", href: "/tools/delete-pages", title: "Delete PDF Pages", category: "organize", icon: "delete", tint: O,
+    seoTitle: "Delete Pages from a PDF — Free, No Signup",
+    desc: "Remove unwanted pages from a PDF. Click the pages you don't need, or type a range like 2, 5-7.",
+    steps: ["Choose a PDF.", "Click the pages to delete, or type a range.", "Download the PDF without those pages."],
+    faqs: [
+      { q: "Does deleting pages change the rest of the document?", a: "No. The remaining pages are copied exactly as they are, with their text and images intact." },
+      { q: "Can I undo a deletion?", a: "Nothing changes until you download, so you can click a page again to bring it back. Your original file is never modified." },
+      { q: "Can I delete every page?", a: "No. At least one page has to remain." },
+      PRIVACY_Q,
+    ],
+  },
+  {
+    slug: "extract-pages", href: "/tools/extract-pages", title: "Extract PDF Pages", category: "organize", icon: "extract", tint: G,
+    seoTitle: "Extract Pages from a PDF into a New File — Free",
+    desc: "Pick the pages you want and save just those as a new PDF.",
+    steps: ["Choose a PDF.", "Click the pages to keep, or type a range like 2, 5-7.", "Download a new PDF with only those pages."],
+    faqs: [
+      { q: "What's the difference between extracting and splitting?", a: "Extracting gives you one new PDF containing exactly the pages you picked. Splitting breaks a document into several files. Use the Split tool for that." },
+      { q: "Do the pages keep their order?", a: "Yes, they appear in the same order as in the original." },
       PRIVACY_Q,
     ],
   },
@@ -148,6 +171,18 @@ const ALL_TOOLS: Tool[] = [
       { q: "Is my signature uploaded or saved?", a: "No. It is created and applied in your browser and is gone when you close the page." },
       { q: "Can I sign several pages?", a: "Yes. Go to each page and place the signature, or add as many signatures, initials or text boxes as you need." },
       FREE_Q,
+    ],
+  },
+  {
+    slug: "crop", href: "/tools/crop", title: "Crop PDF", category: "edit", icon: "crop", tint: Y,
+    seoTitle: "Crop PDF Pages — Trim Margins, Free, No Signup",
+    desc: "Trim margins or cut a PDF down to the area you want. Crop every page at once or one page at a time.",
+    steps: ["Choose a PDF.", "Drag the box to the area you want to keep.", "Click Crop and download."],
+    faqs: [
+      { q: "Does cropping delete what's outside the box?", a: "No. Cropping hides the outside area in every viewer, but the content is still inside the file and can be recovered with the right tools. Don't rely on it to remove sensitive information." },
+      { q: "How can I remove the hidden area for good?", a: "Run the cropped file through the Compress tool with Maximum reduction ticked. That turns each page into an image of only the visible area. Text will no longer be selectable afterwards." },
+      { q: "Can I crop just one page?", a: "Yes. Choose Each page separately, then adjust the box on the pages you want to crop." },
+      PRIVACY_Q,
     ],
   },
   {
