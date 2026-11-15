@@ -2,7 +2,7 @@ export const dynamic = "force-static";
 
 import type { MetadataRoute } from "next";
 import { GUIDES, PUBLISHED } from "@/lib/guides";
-import { localesForPath } from "@/lib/guideLocales";
+import { alternateLocalesForPath } from "@/lib/guideLocales";
 import { localePath } from "@/lib/i18n";
 import { SITE_URL, TOOLS } from "@/lib/tools";
 
@@ -22,7 +22,7 @@ const PAGES: Page[] = [
 export default function sitemap(): MetadataRoute.Sitemap {
   const abs = (lang: string, path: string) => (path === "/" && lang === "en" ? SITE_URL : `${SITE_URL}${localePath(lang, path)}`);
   return PAGES.flatMap((p) => {
-    const langs = localesForPath(p.path);
+    const langs = alternateLocalesForPath(p.path); // only languages search engines may list
     return langs.map((lang) => ({
       url: abs(lang, p.path),
       ...(p.lastModified ? { lastModified: p.lastModified } : {}),

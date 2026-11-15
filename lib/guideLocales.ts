@@ -1,4 +1,4 @@
-import { LOCALES, type LocaleCode } from "@/lib/i18n";
+import { INDEXED_LOCALES, LOCALES, type LocaleCode } from "@/lib/i18n";
 import hi from "@/messages/hi.guides.json";
 import es from "@/messages/es.guides.json";
 import pt from "@/messages/pt.guides.json";
@@ -16,3 +16,6 @@ export const hasGuides = (lang: string) => (GUIDE_LOCALES as string[]).includes(
 
 /** Languages a given site path is available in. Guides follow GUIDE_LOCALES; everything else follows LOCALES. */
 export const localesForPath = (path: string): LocaleCode[] => (path === "/guides" || path.startsWith("/guides/") ? GUIDE_LOCALES : LOCALES);
+
+/** Languages to advertise to search engines for a path (hreflang, sitemap): available AND indexable. */
+export const alternateLocalesForPath = (path: string): LocaleCode[] => localesForPath(path).filter((l) => INDEXED_LOCALES.includes(l));

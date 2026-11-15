@@ -1,7 +1,8 @@
 /**
  * Language support. English lives at the site root (unchanged URLs); every other language lives under /<code>/.
- * Languages are switched on with NEXT_PUBLIC_LOCALES (e.g. "en,hi,es,pt"). Default is English only, so unreviewed
- * translations can never reach visitors by accident.
+ * Languages available to visitors default to English + Hindi + Spanish + Portuguese; override with NEXT_PUBLIC_LOCALES (e.g. "en,hi").
+ * Whether SEARCH ENGINES may list a language is a separate switch (NEXT_PUBLIC_INDEXED_LOCALES, default "en"): until a language is
+ * fully translated and reviewed its pages work for visitors but are marked noindex and left out of the sitemap and hreflang tags.
  */
 export const LOCALE_INFO = {
   en: { native: "English", dir: "ltr" },
@@ -19,10 +20,15 @@ export const LOCALE_INFO = {
 export type LocaleCode = keyof typeof LOCALE_INFO;
 const isKnown = (s: string): s is LocaleCode => s in LOCALE_INFO;
 
-const requested = (process.env.NEXT_PUBLIC_LOCALES ?? "en").split(",").map((s) => s.trim()).filter(Boolean);
+const requested = (process.env.NEXT_PUBLIC_LOCALES ?? "en,hi,es,pt").split(",").map((s) => s.trim()).filter(Boolean);
 /** Enabled languages, English first. */
 export const LOCALES: LocaleCode[] = ["en", ...requested.filter((l): l is LocaleCode => l !== "en" && isKnown(l))];
 export const NON_DEFAULT_LOCALES = LOCALES.filter((l) => l !== "en");
+
+/** Languages search engines may list. Others are noindex and absent from the sitemap and hreflang alternates. */
+const indexedRequested = (process.env.NEXT_PUBLIC_INDEXED_LOCALES ?? "en").split(",").map((s) => s.trim());
+export const INDEXED_LOCALES = LOCALES.filter((l) => l === "en" || indexedRequested.includes(l));
+export const isIndexed = (lang: string) => (INDEXED_LOCALES as string[]).includes(lang);
 export const isEnabledLocale = (s: string): s is LocaleCode => (LOCALES as string[]).includes(s);
 export const dirOf = (lang: string): "ltr" | "rtl" => (isKnown(lang) ? LOCALE_INFO[lang].dir : "ltr");
 

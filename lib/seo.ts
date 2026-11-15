@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { localePath } from "@/lib/i18n";
-import { localesForPath } from "@/lib/guideLocales";
+import { isIndexed, localePath } from "@/lib/i18n";
+import { alternateLocalesForPath } from "@/lib/guideLocales";
 import { getT } from "@/lib/messages";
 import { GUIDES, getGuide } from "@/lib/guides";
 import { SITE_NAME, SITE_URL, getTool } from "@/lib/tools";
 
 /** hreflang alternates: every enabled language of a page, plus x-default (English). Omitted while only English is enabled. */
 export function languageAlternates(path: string): Record<string, string> | undefined {
-  const available = localesForPath(path);
+  const available = alternateLocalesForPath(path);
   if (available.length < 2) return undefined;
   const languages: Record<string, string> = { "x-default": path };
   for (const l of available) languages[l] = localePath(l, path);
@@ -16,9 +16,12 @@ export function languageAlternates(path: string): Record<string, string> | undef
 
 type Social = { image: string; alt: string; type?: "article" };
 
+/** Languages that are not yet listed by search engines are marked noindex (visitors can still use them). */
+const robotsFor = (lang: string): Pick<Metadata, "robots"> => (isIndexed(lang) ? {} : { robots: { index: false, follow: true } });
+
 /** Metadata for one page in one language. `social` adds Open Graph / Twitter cards with a sharing image. */
 export function pageMetadata(lang: string, path: string, title: string, description: string, social?: Social): Metadata {
-  const meta: Metadata = { title, description, alternates: { canonical: localePath(lang, path), languages: languageAlternates(path) } };
+  const meta: Metadata = { title, description, ...robotsFor(lang), alternates: { canonical: localePath(lang, path), languages: isIndexed(lang) ? languageAlternates(path) : undefined } };
   if (social) {
     meta.openGraph = { ...(social.type ? { type: social.type } : {}), title, description, images: [{ url: social.image, width: 1200, height: 630, alt: social.alt }] };
     meta.twitter = { card: "summary_large_image", title, description, images: [social.image] };
@@ -36,7 +39,8 @@ export async function siteMetadata(lang: string): Promise<Metadata> {
     description,
     openGraph: { type: "website", siteName: SITE_NAME, title, description, images: [{ url: "/og", width: 1200, height: 630, alt: `${SITE_NAME}: ${t("free PDF tools")}` }] },
     twitter: { card: "summary_large_image", title, description, images: ["/og"] },
-    alternates: { canonical: localePath(lang, "/"), languages: languageAlternates("/") },
+    ...robotsFor(lang),
+    alternates: { canonical: localePath(lang, "/"), languages: isIndexed(lang) ? languageAlternates("/") : undefined },
   };
 }
 
