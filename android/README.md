@@ -1,14 +1,14 @@
 # PDFRookie (Android)
 
-An Android app with two parts:
+The app opens on the **tools home screen**: a **Scan a document** button, a **My scans** button, and then every tool from the website
+(merge, reorder, rotate, delete and extract pages, crop, split, compress, sign, page numbers, watermark, password protect/unlock, OCR,
+images <-> PDF and more). The tools are bundled inside the app and run on the device, so they work offline.
 
-1. **Scans screen** (native): scan paper into PDFs with Google's on-device **ML Kit Document Scanner** (automatic edge detection, crop,
-   perspective fix, filters, multi-page, gallery import). You name each scan as soon as it's captured. Saved scans live in the app's
-   private storage and can be opened, shared, renamed or deleted.
-2. **All tools** (the whole website, bundled inside the app): merge, reorder, rotate, delete and extract pages, crop, split, compress,
-   sign, page numbers, watermark, password protect/unlock, OCR, images <-> PDF and more. Because the tools run on the device, they work offline.
-   Each saved scan has an **Edit...** button that opens it straight into any of these tools, and the result can be added to My scans,
-   replace the original, be saved to the device, or be shared.
+1. **Scanning** is native: Google's on-device **ML Kit Document Scanner** (automatic edge detection, crop, perspective fix, filters,
+   multi-page, gallery import). Right after capture you **name the scan**, then it is saved to **My scans**.
+2. **My scans** (a native screen) lists saved scans, which can be opened, shared, renamed or deleted. Each has an **Edit...** button that
+   opens it straight into any PDF tool; the result can be added to My scans, replace the original, be saved to the device, or be shared.
+3. Anything a tool produces goes through a native **File ready** dialog (with a rename field) because WebViews can't download files themselves.
 
 > **Status: builds, lints clean and passes its unit tests, but has not been run on a device or emulator.**
 > Verified: `:core:test` (17 tests), `:app:assembleDebug`, `:app:lintDebug` (0 errors), `:app:bundleRelease`, every file of the bundled site is inside the

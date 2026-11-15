@@ -5,6 +5,7 @@ import ToolShell from "@/components/ToolShell";
 import { imagesToPdf } from "@/lib/pdfOps";
 import { downloadBytes, readBytes } from "@/lib/download";
 import { bakeOrientationToJpeg, jpegOrientation } from "@/lib/image";
+import { isImageFile, sniffBytes } from "@/lib/files";
 
 type Img = { id: string; name: string; url: string; file: File };
 
@@ -22,22 +23,33 @@ export default function ImagesToPdf() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const add = (files: File[]) =>
-    setImgs((p) => [...p, ...files.filter((f) => f.type.startsWith("image/")).map((f) => ({ id: crypto.randomUUID(), name: f.name, url: URL.createObjectURL(f), file: f }))]);
+  async function add(files: File[]) {
+    setError(null);
+    const checks = await Promise.all(files.map(async (f) => [f, await isImageFile(f)] as const));
+    const good = checks.filter(([, ok]) => ok).map(([f]) => f);
+    const skipped = checks.filter(([, ok]) => !ok).map(([f]) => f.name || "unnamed file");
+    if (skipped.length) setError(`Skipped ${skipped.length} file${skipped.length === 1 ? "" : "s"} that ${skipped.length === 1 ? "isn't" : "aren't"} images: ${skipped.slice(0, 3).join(", ")}${skipped.length > 3 ? "…" : ""}`);
+    setImgs((p) => [...p, ...good.map((f) => ({ id: crypto.randomUUID(), name: f.name || "photo", url: URL.createObjectURL(f), file: f }))]);
+  }
   const move = (i: number, d: number) => setImgs((p) => { const n = [...p]; const j = i + d; if (j < 0 || j >= n.length) return p; [n[i], n[j]] = [n[j], n[i]]; return n; });
   const remove = (id: string) => setImgs((p) => { p.find((x) => x.id === id) && URL.revokeObjectURL(p.find((x) => x.id === id)!.url); return p.filter((x) => x.id !== id); });
 
   async function run() {
     setBusy(true); setError(null);
     try {
-      const prepared = await Promise.all(imgs.map(async ({ file }) => {
-        if (file.type === "image/jpeg") {
-          const bytes = await readBytes(file);
-          // Phone photos are often stored sideways with an EXIF rotation flag that PDFs ignore.
-          return jpegOrientation(bytes) > 1 ? { bytes: await bakeOrientationToJpeg(file), type: "image/jpeg" } : { bytes, type: "image/jpeg" };
+      const prepared = await Promise.all(imgs.map(async ({ file, name }) => {
+        const bytes = await readBytes(file);
+        const kind = sniffBytes(bytes); // trust the contents, not the reported type or name
+        try {
+          if (kind === "jpeg") {
+            // Phone photos are often stored sideways with an EXIF rotation flag that PDFs ignore.
+            return jpegOrientation(bytes) > 1 ? { bytes: await bakeOrientationToJpeg(file), type: "image/jpeg" } : { bytes, type: "image/jpeg" };
+          }
+          if (kind === "png") return { bytes, type: "image/png" };
+          return { bytes: await toPngBytes(file), type: "image/png" };
+        } catch {
+          throw new Error(`Could not read "${name}". ${kind === "heic" ? "HEIC photos aren't supported; use JPG or PNG." : "The image format may not be supported."}`);
         }
-        if (file.type === "image/png") return { bytes: await readBytes(file), type: "image/png" };
-        return { bytes: await toPngBytes(file), type: "image/png" };
       }));
       downloadBytes(await imagesToPdf(prepared), "images.pdf");
     } catch (e) { setError("Conversion failed: " + (e instanceof Error ? e.message : String(e))); }

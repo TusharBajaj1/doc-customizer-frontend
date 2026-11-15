@@ -15,21 +15,22 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PDFRookie">
 
+        <!-- My scans: opened from the tools home screen -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="false" />
+
+        <activity
+            android:name=".ToolsActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".ToolsActivity"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
-            android:exported="false"
-            android:label="@string/app_name"
-            android:windowSoftInputMode="adjustResize" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

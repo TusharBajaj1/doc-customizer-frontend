@@ -7,6 +7,7 @@ import { canvasToBlob } from "@/lib/pdfjs";
 import { downloadBytes } from "@/lib/download";
 import { imagesToPdf } from "@/lib/pdfOps";
 import { inApp, nativeBridge } from "@/lib/native";
+import { isImageFile } from "@/lib/files";
 
 type Filter = "original" | "gray" | "bw";
 type Shot = { id: string; blob: Blob; url: string };
@@ -84,6 +85,13 @@ export default function ScanPage() {
     addBlob(await canvasToBlob(c, "image/jpeg", 0.92));
   }
 
+  async function addPhotos(files: File[]) {
+    setError(null);
+    let skipped = 0;
+    for (const f of files) { if (await isImageFile(f)) addBlob(f); else skipped++; }
+    if (skipped) setError(`Skipped ${skipped} file${skipped === 1 ? "" : "s"} that ${skipped === 1 ? "isn't" : "aren't"} images.`);
+  }
+
   const move = (i: number, d: number) => setShots((p) => { const n = [...p]; const j = i + d; if (j < 0 || j >= n.length) return p; [n[i], n[j]] = [n[j], n[i]]; return n; });
   const remove = (id: string) => setShots((p) => { const s = p.find((x) => x.id === id); if (s) URL.revokeObjectURL(s.url); return p.filter((x) => x.id !== id); });
 
@@ -131,7 +139,7 @@ export default function ScanPage() {
             <span className="text-lg font-semibold">Open camera</span>
             <span className="text-sm text-slate-500 dark:text-slate-400">Scan pages with your phone or webcam</span>
           </button>}
-          <Dropzone accept="image/*" label="Add photos" hint="Choose existing photos or scans" onFiles={(f) => f.filter((x) => x.type.startsWith("image/")).forEach(addBlob)} />
+          <Dropzone accept="image/*" label="Add photos" hint="Choose existing photos or scans" onFiles={addPhotos} />
         </div>
       )}
       {error && <p role="alert" className="alert-error mt-3">{error}</p>}

@@ -115,7 +115,7 @@ fun ScanApp(repo: ScanRepository) {
             .addOnFailureListener { say("The scanner isn't available on this device. It needs Google Play services.") }
     }
 
-    fun openMoreTools() = context.startActivity(ToolsActivity.intent(context))
+    fun openMoreTools() = context.startActivity(ToolsActivity.home(context))
 
     fun open(item: ScanItem) {
         val intent = Intent(Intent.ACTION_VIEW).setDataAndType(repo.shareUri(item), "application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -131,9 +131,9 @@ fun ScanApp(repo: ScanRepository) {
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("PDFRookie Scan") },
+                title = { Text("My scans") },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                actions = { TextButton(onClick = ::openMoreTools) { Text("All tools") } },
+                actions = { TextButton(onClick = ::openMoreTools) { Text("Tools") } },
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -236,7 +236,7 @@ private fun EmptyState(modifier: Modifier, onMoreTools: () -> Unit) {
             "Tap Scan to capture a document. Edges are found automatically, and you can crop, clean up and save pages as a PDF. Then reorder, crop or delete pages, sign, compress and more with All tools. Everything stays on your phone.",
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
         )
-        OutlinedButton(onClick = onMoreTools) { Text("All PDF tools") }
+        OutlinedButton(onClick = onMoreTools) { Text("Back to tools") }
     }
 }
 

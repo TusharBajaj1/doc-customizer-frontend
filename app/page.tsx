@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Ban, Lock, Zap } from "lucide-react";
+import AppHome from "@/components/AppHome";
 import ToolIcon from "@/components/ToolIcon";
 import FeedbackBox from "@/components/FeedbackBox";
 import { CATEGORIES, TOOLS } from "@/lib/tools";
@@ -13,7 +14,7 @@ const PERKS = [
 export default function Home() {
   return (
     <main>
-      <section className="relative overflow-hidden border-b-2 border-ink dark:border-slate-300">
+      <section id="web-hero" className="relative overflow-hidden border-b-2 border-ink dark:border-slate-300">
                 <div className="mx-auto max-w-4xl px-4 pb-16 pt-14 text-center sm:pt-20">
           <p className="mx-auto inline-block -rotate-2 rounded-md border-2 border-brand-600 px-3 py-1 text-xs font-extrabold uppercase tracking-widest text-brand-600">100% free · no signup</p>
           <h1 className="mt-6 text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl">Document tools that <span className="whitespace-nowrap bg-yellow-300 px-2 text-ink [box-decoration-break:clone] dark:bg-yellow-300">stay free.</span></h1>
@@ -24,6 +25,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <AppHome />
 
       <section id="tools" className="mx-auto mt-14 max-w-6xl px-4">
         <h2 className="sr-only">All tools</h2>

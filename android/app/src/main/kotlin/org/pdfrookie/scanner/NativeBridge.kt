@@ -17,6 +17,8 @@ class NativeBridge(private val host: Host) {
     interface Host {
         val outDir: File
         fun startScan()
+        fun startScanToLibrary()
+        fun openScans()
         fun onFileReady(file: File, displayName: String, mime: String)
     }
 
@@ -69,6 +71,10 @@ class NativeBridge(private val host: Host) {
     }
 
     @JavascriptInterface fun scan() = host.startScan()
+
+    @JavascriptInterface fun scanToLibrary() = host.startScanToLibrary()
+
+    @JavascriptInterface fun openScans() = host.openScans()
 
     private companion object { const val MAX_BYTES = 150L * 1024 * 1024 }
 }

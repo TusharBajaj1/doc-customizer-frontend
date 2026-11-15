@@ -52,6 +52,9 @@ class ToolsActivity : ComponentActivity(), NativeBridge.Host {
         private const val EXTRA_PATH = "path"
         private const val EXTRA_SCAN = "scan"
 
+        /** Brings the existing home (or a new one) to the front, closing tool screens above it. */
+        fun home(context: Context): Intent = intent(context).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+
         /** [path] is a site path such as "tools/crop/" (empty = home). [scanName] opens that saved scan inside the tool. */
         fun intent(context: Context, path: String = "", scanName: String? = null): Intent =
             Intent(context, ToolsActivity::class.java).putExtra(EXTRA_PATH, path).putExtra(EXTRA_SCAN, scanName)
@@ -63,6 +66,7 @@ class ToolsActivity : ComponentActivity(), NativeBridge.Host {
     private var chooserCallback: ValueCallback<Array<Uri>>? = null
     private var sourceScan: ScanItem? = null
     private var toSave: Triple<File, String, String>? = null // file, final name, mime
+    private var scanToLibrary = false // true: save the scan into My scans; false: hand it back to the Scan tool page
 
     override val outDir: File get() = File(cacheDir, "out").apply { mkdirs() }
     private val scanInDir: File get() = File(cacheDir, "scan-in").apply { mkdirs() }
@@ -81,13 +85,16 @@ class ToolsActivity : ComponentActivity(), NativeBridge.Host {
     private val scanLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { r ->
         if (r.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val pdf = GmsDocumentScanningResult.fromActivityResultIntent(r.data)?.pdf ?: return@registerForActivityResult
+        val toLibrary = scanToLibrary
         lifecycleScope.launch {
             runCatching {
+                // copy first: the scanner's temporary file may not outlive this screen
                 val id = UUID.randomUUID().toString()
                 contentResolver.openInputStream(pdf.uri)!!.use { src -> File(scanInDir, "$id.pdf").outputStream().use { src.copyTo(it) } }
                 id
             }.onSuccess { id ->
-                webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('pdfrookie:scan',{detail:{path:'/__scans/$id.pdf',pages:${pdf.pageCount}}}))", null)
+                if (toLibrary) askScanName(File(scanInDir, "$id.pdf"), pdf.pageCount)
+                else webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('pdfrookie:scan',{detail:{path:'/__scans/$id.pdf',pages:${pdf.pageCount}}}))", null)
             }.onFailure { toast("Could not read the scan") }
         }
     }
@@ -188,7 +195,36 @@ class ToolsActivity : ComponentActivity(), NativeBridge.Host {
 
     // ---- NativeBridge.Host ----
 
-    override fun startScan() {
+    override fun startScan() { scanToLibrary = false; launchScanner() }
+
+    override fun startScanToLibrary() { scanToLibrary = true; launchScanner() }
+
+    override fun openScans() { runOnUiThread { startActivity(Intent(this, MainActivity::class.java)) } }
+
+    /** Right after a scan from the home screen: name it, then save it into My scans (or discard). */
+    private fun askScanName(file: File, pages: Int) {
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(pad, pad / 2, pad, 0) }
+        column.addView(TextView(this).apply { text = "$pages page${if (pages == 1) "" else "s"} scanned" })
+        val nameField = EditText(this).apply { setText(Names.title(Names.scanFileName(java.time.LocalDateTime.now()))); setSingleLine(true); setSelectAllOnFocus(true) }
+        column.addView(nameField)
+        AlertDialog.Builder(this)
+            .setTitle("Name your scan")
+            .setView(column)
+            .setCancelable(false)
+            .setPositiveButton("Save") { _, _ ->
+                lifecycleScope.launch {
+                    runCatching { repo.addFromFile(file, nameField.text.toString()) }
+                        .onSuccess { toast("Saved ${it.title}. Find it in My scans.") }
+                        .onFailure { toast("Could not save the scan") }
+                    file.delete()
+                }
+            }
+            .setNegativeButton("Discard") { _, _ -> file.delete() }
+            .show()
+    }
+
+    private fun launchScanner() {
         runOnUiThread {
             GmsDocumentScanning.getClient(scannerOptions()).getStartScanIntent(this)
                 .addOnSuccessListener { sender -> scanLauncher.launch(IntentSenderRequest.Builder(sender).build()) }

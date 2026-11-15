@@ -9,6 +9,10 @@ type NativeBridge = {
   finishSave(token: string): boolean;
   cancelSave(token: string): void;
   scan(): void;
+  /** Scan, ask for a name, and save straight into the app's My scans list. */
+  scanToLibrary(): void;
+  /** Open the app's native My scans screen. */
+  openScans(): void;
 };
 
 declare global {
