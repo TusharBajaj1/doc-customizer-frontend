@@ -49,7 +49,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -206,7 +205,8 @@ private fun EmptyState(modifier: Modifier, onMoreTools: () -> Unit) {
 @Composable
 private fun ScanRow(item: ScanItem, onOpen: () -> Unit, onShare: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
-    val thumb by produceState<android.graphics.Bitmap?>(null, item.file.path, item.modified) { value = renderThumbnail(item.file) }
+    var thumb by remember(item.file.path, item.modified) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(item.file.path, item.modified) { thumb = renderThumbnail(item.file) }
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,

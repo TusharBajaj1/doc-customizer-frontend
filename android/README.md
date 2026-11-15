@@ -2,12 +2,15 @@
 
 A small native Android app that scans paper into PDFs. It uses Google's on-device **ML Kit Document Scanner**
 (automatic edge detection, crop, perspective fix, filters, multi-page, gallery import) and stores the results in
-app-private storage. **No account, no permissions, no network requests from the app, no analytics.**
+app-private storage. **No account, no camera permission, no ads, no analytics of our own, and the app's own code never uploads your scans.**
+(Google's ML Kit libraries may send diagnostics to Google. See "Privacy design" below.)
 "More tools" opens the website (https://pdfrookie.org) in a Custom Tab.
 
-> **Status: written but not yet compiled or run on a device.** It was authored in an environment without the Android SDK,
-> so the first thing to do is open this folder in Android Studio and build. Expect to fix small things.
-> What *has* been verified: the file-naming/sanitising logic in `core/` (11 unit tests, run on the JVM).
+> **Status: builds and passes lint, but has not been run on a device.**
+> Verified: `./gradlew :core:test` (11 unit tests pass), `:app:assembleDebug` (debug APK builds), `:app:lintDebug` (0 errors) and
+> `:app:bundleRelease` (an unsigned release bundle builds).
+> **Not verified:** actually running it (no emulator was available): the scanner flow, sharing, rename/delete, thumbnails.
+> Test on real phones before publishing.
 
 ## Layout
 | Path | What |
@@ -46,12 +49,16 @@ The scanner needs Google Play services; on devices without it the app shows a cl
 ## Before you publish: things to check
 - **Target API level.** `app/build.gradle.kts` targets API 35. Google Play raises its minimum target every year, so check the current
   requirement in Play Console and bump `compileSdk`/`targetSdk` (and AGP) if needed.
-- **ML Kit version.** `play-services-mlkit-document-scanner:16.0.0-beta1` is pinned; check for a newer or stable release.
+- **ML Kit version.** `play-services-mlkit-document-scanner:16.0.0` (stable) is pinned; re-check before each release.
 - **Minification is off** (`isMinifyEnabled = false`) because it hasn't been tested. Enabling R8 shrinks the app; test the release build on a device first.
 - **Test on real phones** (Android 8+, at least one low-end and one without Google Play services).
 - Screenshots for the store listing must be captured from the running app. None are included here on purpose.
 
 ## Privacy design (matches the store listing)
-- No `INTERNET` or camera permission in the manifest. The scanner UI is provided by Google Play services.
+- No camera permission: the scanner UI is provided by Google Play services.
+- **The built app does declare `INTERNET` and `ACCESS_NETWORK_STATE`.** They are added by Google's `datatransport` library (a dependency of ML Kit),
+  which Google uses to send diagnostics. This app's own code opens no network connections; "More tools" opens your browser.
+  Because Google's SDK may collect diagnostic data, the Play **Data safety** form must reflect that (see `docs/PLAY_STORE.md`).
+  If you want a stricter guarantee, the alternative is a scanner that doesn't use ML Kit (more work, lower quality).
 - Scans live in `filesDir/scans` (app-private), are excluded from cloud backup, and are shared only when the user taps Share (via `FileProvider`, read-only, that one file).
 - Renames are sanitised and checked to stay inside the scans folder.

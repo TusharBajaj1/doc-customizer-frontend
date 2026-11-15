@@ -21,7 +21,7 @@ Copy-paste material for Play Console. Review everything against Google's current
 > • Clean-up filters for sharp, readable text
 > • Rename, open, share or delete your scans
 > • Free. No account, no ads, no watermarks
-> • Private: your scans stay on your phone. The app has no internet permission and collects no data
+> • Private by design: your scans are saved on your phone and are never uploaded by the app
 >
 > Need more? Tap "More tools" for free browser-based PDF tools from pdfrookie.org: merge, split, compress, sign, protect and more.
 >
@@ -35,12 +35,14 @@ Copy-paste material for Play Console. Review everything against Google's current
 - **Phone screenshots: you must capture these** from the running app (min. 2, up to 8). Don't use mock-ups that misrepresent the app.
 
 ## Data safety form (suggested answers, verify before submitting)
-- *Does your app collect or share any of the required user data types?* **No.**
-  The app has no network permission and no analytics/ad SDKs. Scans stay in app-private storage.
-- *Is all of the user data collected by your app encrypted in transit?* Not applicable (no data collected).
-- *Do you provide a way for users to request that their data be deleted?* Not applicable; users delete scans inside the app, and uninstalling removes everything.
-- Note: the document scanner component runs through Google Play services and is covered by Google's own privacy terms.
-  Read Google's current ML Kit and Play data-safety guidance to confirm whether that needs to be disclosed.
+**Do not answer "no data collected" without checking.** The built app includes Google's ML Kit libraries, which pull in Google's
+`datatransport` library and add the `INTERNET` and `ACCESS_NETWORK_STATE` permissions. Google says ML Kit can send diagnostic/usage data.
+- Read Google's **ML Kit "Data disclosure" page** for the Document Scanner and answer the Data safety form to match
+  (it lists which data types the SDK may collect, such as app diagnostics and device/other identifiers, and whether it is optional).
+- Your own code collects nothing and uploads no scans. Scans stay in app-private storage and are excluded from cloud backup.
+- Answer the "is data encrypted in transit" and "can users request deletion" questions according to what the disclosure says
+  and how Google handles SDK data.
+- Mismatches between the form and the app's real behaviour can get an app rejected or removed, so verify rather than copy.
 
 ## Content rating
 Answer the questionnaire honestly (utility app; no violence, gambling, user-generated content sharing, or location). Expect an "Everyone" rating.

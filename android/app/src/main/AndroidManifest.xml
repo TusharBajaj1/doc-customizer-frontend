@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- No permissions on purpose: the scanner UI is provided by Google Play services (no camera permission needed),
-         files stay in app-private storage, and the app itself makes no network requests. -->
+    <!-- No permissions are declared by this app itself. The scanner UI is provided by Google Play services, so no camera
+         permission is needed, and scans stay in app-private storage.
+         NOTE: the merged manifest still contains INTERNET and ACCESS_NETWORK_STATE. They are added by Google's
+         datatransport library, which ML Kit uses to send diagnostics to Google (see the manifest-merger report).
+         This app's own code never opens a network connection. -->
 
     <application
         android:allowBackup="false"

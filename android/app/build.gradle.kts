@@ -66,6 +66,5 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
 
     // Google's on-device document scanner (edge detection, crop, filters, PDF output). Runs via Google Play services.
-    // Check for a newer version before release.
-    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0")
 }
