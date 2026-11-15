@@ -10,3 +10,4 @@ public/wasm/
 .next-app
 .app-build-stash
 android/app/src/main/assets/www
+*-review.xlsx
