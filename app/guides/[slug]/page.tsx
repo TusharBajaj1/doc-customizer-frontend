@@ -30,7 +30,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      { "@type": "Article", headline: g.title, description: g.description, datePublished: PUBLISHED, dateModified: PUBLISHED, mainEntityOfPage: url, author: { "@type": "Organization", name: SITE_NAME }, publisher: { "@type": "Organization", name: SITE_NAME } },
+      { "@type": "Article", headline: g.title, description: g.description, datePublished: g.published ?? PUBLISHED, dateModified: g.published ?? PUBLISHED, mainEntityOfPage: url, author: { "@type": "Organization", name: SITE_NAME }, publisher: { "@type": "Organization", name: SITE_NAME } },
       { "@type": "BreadcrumbList", itemListElement: [
         { "@type": "ListItem", position: 1, name: "Guides", item: `${SITE_URL}/guides` },
         { "@type": "ListItem", position: 2, name: g.title, item: url },

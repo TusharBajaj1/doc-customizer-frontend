@@ -2,10 +2,12 @@ import Link from "next/link";
 import { ChevronLeft, ShieldCheck, Server } from "lucide-react";
 import ToolIcon from "@/components/ToolIcon";
 import FeedbackBox from "@/components/FeedbackBox";
+import { GUIDES } from "@/lib/guides";
 import { getTool, SITE_URL } from "@/lib/tools";
 
 export default function ToolShell({ slug, children }: { slug: string; children: React.ReactNode }) {
   const tool = getTool(slug);
+  const guide = GUIDES.find((g) => g.tool === slug);
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -41,6 +43,12 @@ export default function ToolShell({ slug, children }: { slug: string; children: 
           ))}
         </ol>
       </section>
+
+      {guide && (
+        <p className="mt-10 rounded-md border-2 border-ink bg-yellow-100 p-4 text-sm text-ink dark:border-slate-300 dark:bg-slate-900 dark:text-slate-100">
+          <strong>Need a walkthrough?</strong> Read the guide: <Link className="font-semibold underline" href={`/guides/${guide.slug}`}>{guide.title}</Link>
+        </p>
+      )}
 
       <section className="mt-12" aria-labelledby="faq">
         <h2 id="faq" className="text-xl font-semibold">Frequently asked questions</h2>
