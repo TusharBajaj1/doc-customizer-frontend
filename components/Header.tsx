@@ -1,6 +1,7 @@
 import Link from "next/link";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Logo from "@/components/Logo";
+import { hasGuides } from "@/lib/guideLocales";
 import { localePath } from "@/lib/i18n";
 import { getT } from "@/lib/messages";
 import { CATEGORIES, SITE_NAME } from "@/lib/tools";
@@ -17,7 +18,7 @@ export default async function Header({ lang }: { lang: string }) {
         </Link>
         <nav className="hidden items-center gap-5 text-sm text-slate-600 dark:text-slate-300 md:flex" aria-label={t("Tools")}>
           {CATEGORIES.map((c) => <Link key={c.id} href={href(`/#${c.id}`)} className="hover:text-brand-600 hover:underline hover:decoration-2 hover:underline-offset-4">{t(c.title.split(" ")[0])}</Link>)}
-          <Link href={href("/guides")} className="hover:text-brand-600 hover:underline hover:decoration-2 hover:underline-offset-4">{t("Guides")}</Link>
+          {hasGuides(lang) && <Link href={href("/guides")} className="hover:text-brand-600 hover:underline hover:decoration-2 hover:underline-offset-4">{t("Guides")}</Link>}
           <Link href={href("/request")} className="btn !py-1">{t("Request a tool")}</Link>
         </nav>
         <LanguageSwitcher />

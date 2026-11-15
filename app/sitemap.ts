@@ -2,7 +2,8 @@ export const dynamic = "force-static";
 
 import type { MetadataRoute } from "next";
 import { GUIDES, PUBLISHED } from "@/lib/guides";
-import { LOCALES, localePath } from "@/lib/i18n";
+import { localesForPath } from "@/lib/guideLocales";
+import { localePath } from "@/lib/i18n";
 import { SITE_URL, TOOLS } from "@/lib/tools";
 
 type Page = { path: string; priority: number; lastModified?: string };
@@ -20,12 +21,13 @@ const PAGES: Page[] = [
 /** One entry per page per enabled language; each lists all its language versions (hreflang) so Google links them together. */
 export default function sitemap(): MetadataRoute.Sitemap {
   const abs = (lang: string, path: string) => (path === "/" && lang === "en" ? SITE_URL : `${SITE_URL}${localePath(lang, path)}`);
-  return PAGES.flatMap((p) =>
-    LOCALES.map((lang) => ({
+  return PAGES.flatMap((p) => {
+    const langs = localesForPath(p.path);
+    return langs.map((lang) => ({
       url: abs(lang, p.path),
       ...(p.lastModified ? { lastModified: p.lastModified } : {}),
       priority: p.priority,
-      ...(LOCALES.length > 1 ? { alternates: { languages: Object.fromEntries(LOCALES.map((l) => [l, abs(l, p.path)])) } } : {}),
-    })),
-  );
+      ...(langs.length > 1 ? { alternates: { languages: Object.fromEntries(langs.map((l) => [l, abs(l, p.path)])) } } : {}),
+    }));
+  });
 }

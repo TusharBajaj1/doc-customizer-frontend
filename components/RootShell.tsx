@@ -2,6 +2,7 @@ import Analytics from "@/components/Analytics";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { I18nProvider } from "@/components/I18nProvider";
+import { GUIDE_LOCALES, hasGuides } from "@/lib/guideLocales";
 import { dirOf } from "@/lib/i18n";
 import { loadMessages } from "@/lib/messages";
 
@@ -11,7 +12,7 @@ export default async function RootShell({ lang, children }: { lang: string; chil
   return (
     <html lang={lang} dir={dirOf(lang)}>
       <body className="flex min-h-screen flex-col font-sans">
-        <I18nProvider lang={lang} messages={messages}>
+        <I18nProvider lang={lang} messages={messages} guides={hasGuides(lang)} guideLangs={GUIDE_LOCALES}>
           <Header lang={lang} />
           <div className="flex-1">{children}</div>
           <Footer lang={lang} />

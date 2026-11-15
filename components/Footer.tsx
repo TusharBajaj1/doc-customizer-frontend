@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ConsentLink from "@/components/ConsentLink";
+import { hasGuides } from "@/lib/guideLocales";
 import { localePath } from "@/lib/i18n";
 import { getT } from "@/lib/messages";
 import { SITE_NAME, TOOLS } from "@/lib/tools";
@@ -25,7 +26,7 @@ export default async function Footer({ lang }: { lang: string }) {
           <ul className="mt-2 space-y-1 text-sm text-slate-500 dark:text-slate-400">
             <li><Link href={href("/request")} className="hover:text-brand-600">{t("Request a tool or feature")}</Link></li>
             <li><Link href={href("/#feedback")} className="hover:text-brand-600">{t("Send feedback")}</Link></li>
-            <li><Link href={href("/guides")} className="hover:text-brand-600">{t("PDF guides")}</Link></li>
+            {hasGuides(lang) && <li><Link href={href("/guides")} className="hover:text-brand-600">{t("PDF guides")}</Link></li>}
             <li><Link href={href("/about")} className="hover:text-brand-600">{t("About")}</Link></li>
             <li><Link href={href("/privacy")} className="hover:text-brand-600">{t("Privacy")}</Link></li>
             <ConsentLink />

@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { LOCALES, localePath } from "@/lib/i18n";
+import { localePath } from "@/lib/i18n";
+import { localesForPath } from "@/lib/guideLocales";
 import { getT } from "@/lib/messages";
 import { GUIDES, getGuide } from "@/lib/guides";
 import { SITE_NAME, SITE_URL, getTool } from "@/lib/tools";
 
 /** hreflang alternates: every enabled language of a page, plus x-default (English). Omitted while only English is enabled. */
 export function languageAlternates(path: string): Record<string, string> | undefined {
-  if (LOCALES.length < 2) return undefined;
+  const available = localesForPath(path);
+  if (available.length < 2) return undefined;
   const languages: Record<string, string> = { "x-default": path };
-  for (const l of LOCALES) languages[l] = localePath(l, path);
+  for (const l of available) languages[l] = localePath(l, path);
   return languages;
 }
 

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import LocaleLink from "@/components/LocaleLink";
-import { useLang, useT } from "@/components/I18nProvider";
+import { useHasGuides, useLang, useT } from "@/components/I18nProvider";
 import { localePath } from "@/lib/i18n";
 import { ChevronLeft, ShieldCheck, Server } from "lucide-react";
 import ToolIcon from "@/components/ToolIcon";
@@ -12,8 +12,9 @@ import { getTool, SITE_URL } from "@/lib/tools";
 export default function ToolShell({ slug, children }: { slug: string; children: React.ReactNode }) {
   const t = useT();
   const lang = useLang();
+  const hasGuides = useHasGuides();
   const tool = getTool(slug);
-  const guide = GUIDES.find((g) => g.tool === slug);
+  const guide = hasGuides ? GUIDES.find((g) => g.tool === slug) : undefined;
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
