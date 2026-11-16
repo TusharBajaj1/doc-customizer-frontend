@@ -3,7 +3,7 @@ import { ArrowRight, Ban, Lock, Zap } from "lucide-react";
 import AppHome from "@/components/AppHome";
 import ToolIcon from "@/components/ToolIcon";
 import FeedbackBox from "@/components/FeedbackBox";
-import { CATEGORIES, TOOLS } from "@/lib/tools";
+import { CATEGORIES, TOOLS, SITE_URL, SITE_NAME } from "@/lib/tools";
 
 const PERKS = [
   { icon: Lock, title: "Private by design", text: "Most tools run in your browser. Your files never leave your device." },
@@ -14,13 +14,17 @@ const PERKS = [
 export default function Home() {
   return (
     <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@graph": [
+        { "@type": "WebSite", name: SITE_NAME, url: SITE_URL },
+        { "@type": "Organization", name: SITE_NAME, url: SITE_URL, logo: `${SITE_URL}/icon.png` },
+      ] }) }} />
       <section id="web-hero" className="relative overflow-hidden border-b-2 border-ink dark:border-slate-300">
                 <div className="mx-auto max-w-4xl px-4 pb-16 pt-14 text-center sm:pt-20">
           <p className="mx-auto inline-block -rotate-2 rounded-md border-2 border-brand-600 px-3 py-1 text-xs font-extrabold uppercase tracking-widest text-brand-600">100% free · no signup</p>
           <h1 className="mt-6 text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl">Document tools that <span className="whitespace-nowrap bg-yellow-300 px-2 text-ink [box-decoration-break:clone] dark:bg-yellow-300">stay free.</span></h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600 dark:text-slate-300">Merge, reorder, rotate, convert and OCR your documents. The basics shouldn&apos;t cost money or ask for your email.</p>
           <div className="mt-8 flex justify-center gap-3">
-            <Link href="/tools/organize" className="btn btn-primary px-5 py-3 text-base">Merge PDFs <ArrowRight size={18} aria-hidden /></Link>
+            <Link href="/tools/merge-pdf" className="btn btn-primary px-5 py-3 text-base">Merge PDFs <ArrowRight size={18} aria-hidden /></Link>
             <a href="#tools" className="btn px-5 py-3 text-base">All {TOOLS.length} tools</a>
           </div>
         </div>

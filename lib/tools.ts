@@ -39,7 +39,7 @@ const L = "bg-violet-200 text-ink dark:bg-violet-300";
 
 const ALL_TOOLS: Tool[] = [
   {
-    slug: "organize", href: "/tools/organize", title: "Merge & Organize PDF", category: "organize", icon: "organize", tint: Y,
+    slug: "merge-pdf", href: "/tools/merge-pdf", title: "Merge & Organize PDF", category: "organize", icon: "organize", tint: Y,
     seoTitle: "Merge PDF Files & Reorder Pages — Free, No Signup",
     desc: "Merge PDFs, drag pages into order, rotate, delete and extract pages with live thumbnails.",
     steps: ["Add one or more PDF files.", "Drag pages into order, click to select, then rotate, delete or extract.", "Click Export PDF to download the result."],
@@ -107,7 +107,7 @@ const ALL_TOOLS: Tool[] = [
     ],
   },
   {
-    slug: "images-to-pdf", href: "/tools/images-to-pdf", title: "Images to PDF", category: "convert", icon: "images", tint: G,
+    slug: "images-to-pdf", href: "/tools/images-to-pdf", title: "JPG & PNG to PDF", category: "convert", icon: "images", tint: G,
     seoTitle: "Convert JPG, PNG & WebP Images to PDF — Free, No Signup",
     desc: "Combine JPG, PNG and WebP images into one PDF, one image per page.",
     steps: ["Add your images.", "Reorder them or remove the ones you don't need.", "Click Create PDF."],
@@ -118,11 +118,12 @@ const ALL_TOOLS: Tool[] = [
     ],
   },
   {
-    slug: "pdf-to-images", href: "/tools/pdf-to-images", title: "PDF to Images", category: "convert", icon: "export", tint: O,
-    seoTitle: "Convert PDF to PNG Images — Free, No Signup",
-    desc: "Export every page of a PDF as a high-quality PNG image, delivered as a zip.",
-    steps: ["Choose a PDF.", "Wait while each page is rendered.", "Download the zip of PNG images."],
+    slug: "pdf-to-images", href: "/tools/pdf-to-images", title: "PDF to JPG & PNG", category: "convert", icon: "export", tint: O,
+    seoTitle: "Convert PDF to JPG or PNG Images — Free, No Signup",
+    desc: "Convert every page of a PDF to a JPG or PNG image, delivered as a zip. Free, in your browser.",
+    steps: ["Pick JPG or PNG, then choose a PDF.", "Wait while each page is rendered.", "Download the zip of images."],
     faqs: [
+      { q: "Should I choose JPG or PNG?", a: "JPG gives much smaller files and suits photos and scans. PNG is lossless and suits text, charts and screenshots." },
       { q: "What resolution are the images?", a: "Pages are rendered at 2x scale, which is sharp enough for most screens and documents." },
       { q: "Is there a page limit?", a: "No fixed limit, but very large PDFs depend on your device's memory." },
       PRIVACY_Q,

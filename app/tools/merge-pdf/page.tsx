@@ -75,7 +75,7 @@ export default function OrganizePage() {
   }
 
   return (
-    <ToolShell slug="organize">
+    <ToolShell slug="merge-pdf">
       <Dropzone accept="application/pdf" label="Add PDF files" onFiles={addFiles} />
       {error && <p role="alert" className="alert-error mt-3">{error}</p>}
 

@@ -24,7 +24,7 @@ export const GUIDES: Guide[] = [
     slug: "merge-pdfs-without-uploading",
     title: "How to merge PDF files without uploading them",
     description: "Combine several PDFs into one for free, in your browser. Your files never leave your device, and there is no signup or watermark.",
-    tool: "organize", cta: "Merge PDFs now",
+    tool: "merge-pdf", cta: "Merge PDFs now",
     steps: ["Open the Merge & Organize tool and add your PDFs.", "Drag the pages into the order you want.", "Select pages to rotate or delete if needed.", "Click Export PDF."],
     body: [
       { t: "p", text: "Most online PDF mergers upload your documents to a server. For contracts, invoices, IDs or medical papers, that is not ideal. This guide uses a merger that does the work inside your browser, so the files stay on your computer or phone." },

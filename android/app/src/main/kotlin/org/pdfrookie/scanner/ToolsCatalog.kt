@@ -4,7 +4,7 @@ package org.pdfrookie.scanner
 data class PdfTool(val title: String, val slug: String, val hint: String)
 
 val PDF_TOOLS = listOf(
-    PdfTool("Edit pages", "organize", "Reorder, rotate or delete pages"),
+    PdfTool("Edit pages", "merge-pdf", "Reorder, rotate or delete pages"),
     PdfTool("Crop", "crop", "Trim margins or cut to an area"),
     PdfTool("Delete pages", "delete-pages", "Remove pages you don't need"),
     PdfTool("Extract pages", "extract-pages", "Keep only some pages"),

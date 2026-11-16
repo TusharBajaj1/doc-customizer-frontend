@@ -7,6 +7,8 @@ const nextConfig = {
   reactStrictMode: true,
   // Make sure the sharing-image fonts are shipped with the /og function.
   outputFileTracingIncludes: { "/og": ["./app/og/*.ttf"] },
+  // The merge tool moved from /tools/organize to /tools/merge-pdf. Not available in the static app export.
+  ...(isApp ? {} : { async redirects() { return [{ source: "/tools/organize", destination: "/tools/merge-pdf", permanent: true }]; } }),
   webpack: (config) => {
     config.resolve.alias.canvas = false; // pdfjs optional dep
     // Emscripten glue (qpdf) has a Node-only branch; it is never used in the browser.
