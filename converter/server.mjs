@@ -1,8 +1,9 @@
-// Standalone Office -> PDF converter. No dependencies; needs LibreOffice (`soffice`) on PATH.
-// POST /convert  (body = raw file bytes, header X-File-Ext: .docx)  ->  application/pdf
+// Standalone document converter. No npm dependencies.
+// POST /convert       (body = raw file bytes, header X-File-Ext: .docx)  ->  application/pdf   (needs LibreOffice `soffice` on PATH)
+// POST /pdf-to-docx   (body = raw PDF bytes)                             ->  .docx            (needs Python with pdf2docx, see pdf_to_docx.py)
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { createWriteStream } from "node:fs";
+import { createWriteStream, openSync, readSync, closeSync } from "node:fs";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -12,6 +13,8 @@ const MAX_BYTES = Number(process.env.CONVERT_MAX_BYTES ?? 50 * 1024 * 1024);
 const TIMEOUT_MS = Number(process.env.CONVERT_TIMEOUT_MS ?? 60_000);
 const MAX_CONCURRENT = Number(process.env.CONVERT_MAX_CONCURRENT ?? 2);
 const RATE_LIMIT = Number(process.env.CONVERT_RATE_LIMIT ?? 20); // conversions per IP per hour
+const PYTHON = process.env.PDF2DOCX_PYTHON ?? "python3";
+const SCRIPT = new URL("./pdf_to_docx.py", import.meta.url).pathname;
 const ORIGINS = (process.env.ALLOWED_ORIGINS ?? "").split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);
 // Word-processing formats by default. Add spreadsheets/slides later with e.g. CONVERT_EXTENSIONS=.doc,.docx,.odt,.rtf,.txt,.xls,.xlsx,.ods,.csv,.ppt,.pptx,.odp
 const ALLOWED_EXT = new Set((process.env.CONVERT_EXTENSIONS ?? ".doc,.docx,.odt,.rtf,.txt").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
@@ -70,19 +73,32 @@ function convert(dir, input) {
   });
 }
 
+/** Runs the pdf2docx script with the same kill-on-timeout handling. Resolves with the exit code. */
+function pdfToDocx(input, output) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(PYTHON, [SCRIPT, input, output], { detached: true, stdio: "ignore" });
+    const timer = setTimeout(() => { try { process.kill(-child.pid, "SIGKILL"); } catch {} reject(Object.assign(new Error("timeout"), { status: 504 })); }, TIMEOUT_MS);
+    child.on("error", (e) => { clearTimeout(timer); reject(e); });
+    child.on("exit", (code) => { clearTimeout(timer); resolve(code); });
+  });
+}
+
+const looksLikePdf = (file) => { const fd = openSync(file, "r"); try { const b = Buffer.alloc(5); readSync(fd, b, 0, 5, 0); return b.toString("latin1") === "%PDF-"; } finally { closeSync(fd); } };
+
 const server = createServer(async (req, res) => {
   cors(req, res);
   const url = new URL(req.url ?? "/", "http://x");
 
   if (req.method === "GET" && url.pathname === "/health") return send(res, 200, { ok: true });
   if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
-  if (req.method !== "POST" || url.pathname !== "/convert") return send(res, 404, { error: "Not found." });
+  const route = url.pathname;
+  if (req.method !== "POST" || (route !== "/convert" && route !== "/pdf-to-docx")) return send(res, 404, { error: "Not found." });
 
   // Browsers from other origins are blocked by CORS; this also rejects non-browser callers that send a foreign Origin.
   if (req.headers.origin && !ORIGINS.includes(req.headers.origin)) return send(res, 403, { error: "Origin not allowed." });
 
   const ext = String(req.headers["x-file-ext"] ?? "").toLowerCase();
-  if (!ALLOWED_EXT.has(ext)) return send(res, 415, { error: "Unsupported file type." });
+  if (route === "/convert" && !ALLOWED_EXT.has(ext)) return send(res, 415, { error: "Unsupported file type." });
   if (Number(req.headers["content-length"] ?? 0) > MAX_BYTES) return send(res, 413, { error: "File too large." });
 
   const ip = String(req.headers["fly-client-ip"] ?? req.headers["x-forwarded-for"] ?? req.socket.remoteAddress ?? "unknown").split(",")[0].trim();
@@ -93,7 +109,20 @@ const server = createServer(async (req, res) => {
   let dir;
   try {
     dir = await mkdtemp(path.join(tmpdir(), "convert-"));
-    const input = path.join(dir, `input${ext}`); // fixed name: never trust the client's filename
+    if (route === "/pdf-to-docx") {
+      const input = path.join(dir, "input.pdf"); // fixed names: never trust the client's filename
+      const output = path.join(dir, "output.docx");
+      await saveBody(req, input);
+      if (!looksLikePdf(input)) return send(res, 415, { error: "That file is not a PDF." });
+      const code = await pdfToDocx(input, output);
+      if (code === 3) return send(res, 422, { error: "This PDF has no selectable text, so it looks like a scan. Run it through our OCR tool first." });
+      if (code === 4) return send(res, 422, { error: "This PDF is password protected. Unlock it first, then convert it." });
+      if (code !== 0) throw new Error(`pdf2docx exited ${code}`);
+      const docx = await readFile(output);
+      res.writeHead(200, { "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "Content-Length": docx.length });
+      return res.end(docx);
+    }
+    const input = path.join(dir, `input${ext}`);
     await saveBody(req, input);
     await convert(dir, input);
     const pdf = await readFile(path.join(dir, "input.pdf"));

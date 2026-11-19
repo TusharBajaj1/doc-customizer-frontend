@@ -154,6 +154,20 @@ const ALL_TOOLS: Tool[] = [
     ],
   },
   {
+    slug: "pdf-to-word", href: "/tools/pdf-to-word", title: "PDF to Word", category: "convert", icon: "convert", tint: B, server: true,
+    seoTitle: "Convert PDF to Word (DOCX) Online — Free, No Signup",
+    desc: "Turn a PDF into an editable Word document. Works best on text documents, with tables and formatting kept.",
+    steps: ["Choose a PDF.", "It is converted on our converter server.", "Download the editable Word (.docx) file."],
+    faqs: [
+      { q: "Is my PDF uploaded?", a: "Yes. Converting a PDF to Word accurately needs a server, so the file is sent over an encrypted connection to our converter. It is processed in a temporary folder and deleted immediately afterwards; we do not keep, read or share it. Every other tool on this site runs on your device instead." },
+      { q: "How accurate is the conversion?", a: "Text, headings, bold and italic, lists and simple tables usually come through as real, editable Word content. Complex layouts such as multi-column magazines, heavy graphics or unusual fonts can come out looser, so check the result before sending it." },
+      { q: "Can it convert a scanned PDF?", a: "Not directly. A scan is a picture of text, so there is no text to convert. Run it through our OCR tool first to get the text." },
+      { q: "What if my PDF is password protected?", a: "Unlock it first with our Unlock PDF tool, then convert it." },
+      { q: "Is there a size limit?", a: "Files up to 50 MB. Very long documents can take a little while." },
+      FREE_Q,
+    ],
+  },
+  {
     slug: "ocr", href: "/tools/ocr", title: "OCR", category: "convert", icon: "ocr", tint: P,
     seoTitle: "Extract Text from Scanned PDFs & Images (OCR) — Free",
     desc: "Turn scanned PDFs and photos into editable text, right in your browser.",

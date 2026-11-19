@@ -15,7 +15,7 @@ export default function About() {
           <ul className="mt-3 list-disc space-y-2 pl-5">
             <li><strong>No signup, no daily limits, no watermarks.</strong> The tools stay free.</li>
             <li><strong>Private by design.</strong> Most tools run entirely in your browser, so your files never leave your device and are never uploaded to us.</li>
-            <li><strong>Honest about the exceptions.</strong> Converting Word documents to PDF needs a server to do accurately. Where a tool uploads your file, the tool page says so, and the file is deleted right after conversion.</li>
+            <li><strong>Honest about the exceptions.</strong> Converting between Word and PDF needs a server to do accurately. Where a tool uploads your file, the tool page says so, and the file is deleted right after conversion.</li>
             <li><strong>Open source.</strong> You can read exactly how it works on <a className="text-brand-600 underline" href="https://github.com/TusharBajaj1/doc-customizer-frontend">GitHub</a>.</li>
           </ul>
         </section>
