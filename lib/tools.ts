@@ -156,10 +156,10 @@ const ALL_TOOLS: Tool[] = [
   {
     slug: "pdf-to-word", href: "/tools/pdf-to-word", title: "PDF to Word", category: "convert", icon: "convert", tint: B,
     seoTitle: "Convert PDF to Word (DOCX) Online — Free, No Upload",
-    desc: "Turn a PDF into an editable Word document, right in your browser. Best for text documents.",
+    desc: "Turn a PDF into an editable Word document, with tables and images, right in your browser. Best for text documents.",
     steps: ["Choose a PDF.", "The text is rebuilt as an editable document on your device.", "Download the Word (.docx) file."],
     faqs: [
-      { q: "How good is the conversion?", a: "It rebuilds the text, headings, bold and italic, and keeps table rows aligned with tabs, so you can edit it in Word. It does not copy images or the exact page layout, so complex designs, multi-column pages and tables with borders will look different. Check the result before sending it." },
+      { q: "How good is the conversion?", a: "It rebuilds the text, headings, bold and italic, tables as real Word tables, and embedded images, all editable in Word. It does not reproduce the exact page design: centred titles, shading, fonts, multi-column pages and vector drawings can look different. Check the result before sending it." },
       { q: "Can it convert a scanned PDF?", a: "Not directly. A scan is a picture of text, so there is no text to convert. Run it through our OCR tool first to get the text." },
       { q: "What if my PDF is password protected?", a: "Unlock it first with our Unlock PDF tool, then convert it." },
       PRIVACY_Q,
