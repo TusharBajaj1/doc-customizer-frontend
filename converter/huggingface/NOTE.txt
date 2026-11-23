@@ -1,0 +1,2 @@
+These four files are what you upload to a Hugging Face Docker Space: README.md, Dockerfile, server.mjs, pdf_to_docx.py.
+server.mjs and pdf_to_docx.py are copies of ../server.mjs and ../pdf_to_docx.py; if you change those, copy them here again.
