@@ -159,7 +159,7 @@ const ALL_TOOLS: Tool[] = [
     desc: "Turn a PDF into an editable Word document, with tables and images, right in your browser. Best for text documents.",
     steps: ["Choose a PDF.", "The text is rebuilt as an editable document on your device.", "Download the Word (.docx) file."],
     faqs: [
-      { q: "How good is the conversion?", a: "It rebuilds headings, paragraphs, fonts, bold and italic, alignment, bullet lists, links, real Word tables (with shading and borders), embedded images and two-column text, all editable in Word. It does not copy text colours, charts or other vector drawings, and complex designs can look different, so check the result before sending it." },
+      { q: "How good is the conversion?", a: "It rebuilds headings, paragraphs, fonts, bold and italic, alignment, bullet lists, links, real Word tables (with shading and borders), embedded images and clearly two-column pages, all editable in Word. Pages with charts, other drawings or rotated text get a picture of the original page above their editable text, so nothing is lost. Text colours are not copied, and complex designs can still look different, so check the result before sending it." },
       { q: "Can it convert a scanned PDF?", a: "Not directly. A scan is a picture of text, so there is no text to convert. Run it through our OCR tool first to get the text." },
       { q: "What if my PDF is password protected?", a: "Unlock it first with our Unlock PDF tool, then convert it." },
       PRIVACY_Q,

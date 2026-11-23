@@ -2,7 +2,7 @@
 // PDF -> Word, entirely in the browser. Rebuilds text (fonts, bold/italic, headings, alignment, indents, bullets,
 // links), tables (with shading, borders, wrapped cells), embedded images, margins and two-column pages from
 // pdf.js positions and drawing operators. It does not reproduce text colours or vector drawings such as charts.
-import { getPdfjs, loadPdf } from "@/lib/pdfjs";
+import { canvasToBlob, getPdfjs, loadPdf, renderPage } from "@/lib/pdfjs";
 
 export class NoTextError extends Error {}
 
@@ -11,7 +11,7 @@ type Seg = { x: number; y: number; items: Item[] };
 type Line = { y: number; x0: number; x1: number; size: number; segs: Seg[] };
 type Box = { x0: number; y0: number; x1: number; y1: number };
 type Img = { x: number; y: number; w: number; h: number; png: Uint8Array };
-type Graphics = { fills: (Box & { color: string })[]; strokes: Box[] };
+type Graphics = { fills: (Box & { color: string })[]; strokes: Box[]; paths: { box: Box; n: number }[] };
 type Order = { band: number; y: number };
 type Block =
   | { kind: "para"; items: Item[]; size: number; lines: { x0: number; x1: number }[]; o: Order }
@@ -43,11 +43,12 @@ async function pageGraphics(page: import("pdfjs-dist").PDFPageProxy, pageArea: n
   const { OPS } = await getPdfjs();
   const ops = await page.getOperatorList();
   const images: Img[] = [];
-  const gfx: Graphics = { fills: [], strokes: [] };
+  const gfx: Graphics = { fills: [], strokes: [], paths: [] };
   let ctm: Mat = [1, 0, 0, 1, 0, 0];
   let fill = "000000";
   const stack: { m: Mat; f: string }[] = [];
   let path: Box | null = null;
+  let pathN = 0;
   const box = (mm: ArrayLike<number>): Box => {
     const pts = [[mm[0], mm[1]], [mm[2], mm[1]], [mm[0], mm[3]], [mm[2], mm[3]]].map(([x, y]) => [ctm[0] * x + ctm[2] * y + ctm[4], ctm[1] * x + ctm[3] * y + ctm[5]]);
     return { x0: Math.min(...pts.map((p) => p[0])), x1: Math.max(...pts.map((p) => p[0])), y0: Math.min(...pts.map((p) => p[1])), y1: Math.max(...pts.map((p) => p[1])) };
@@ -61,10 +62,11 @@ async function pageGraphics(page: import("pdfjs-dist").PDFPageProxy, pageArea: n
     else if (fn === OPS.transform) ctm = mul(ctm, args as Mat);
     else if (fn === OPS.setFillRGBColor) fill = hex(args[0], args[1], args[2]);
     else if (fn === OPS.setFillGray) fill = hex(args[0], args[0], args[0]);
-    else if (fn === OPS.constructPath) path = args?.[2] ? box(args[2]) : null;
+    else if (fn === OPS.constructPath) { path = args?.[2] ? box(args[2]) : null; pathN = args?.[0]?.length ?? 0; }
     else if (fn === OPS.endPath) path = null;
     else if (filled.has(fn) || stroked.has(fn)) {
       if (path) {
+        gfx.paths.push({ box: path, n: pathN });
         const area = (path.x1 - path.x0) * (path.y1 - path.y0);
         if (filled.has(fn) && fill !== "FFFFFF" && area > 20 && area < 0.8 * pageArea) gfx.fills.push({ ...path, color: fill });
         if (stroked.has(fn)) gfx.strokes.push(path);
@@ -256,7 +258,7 @@ function findGutter(items: Item[], pageW: number): number | null {
 export async function pdfToDocx(bytes: Uint8Array, onProgress?: (done: number, total: number) => void): Promise<Uint8Array> {
   const docx = await import("docx");
   const pdf = await loadPdf(bytes);
-  type Pg = { items: Item[]; images: Img[]; gfx: Graphics; width: number; height: number };
+  type Pg = { items: Item[]; images: Img[]; gfx: Graphics; grids: ReturnType<typeof detectGrids>; snapshot?: Uint8Array; width: number; height: number };
   const pages: Pg[] = [];
   const sizeChars = new Map<number, number>();
   let totalChars = 0;
@@ -270,9 +272,11 @@ export async function pdfToDocx(bytes: Uint8Array, onProgress?: (done: number, t
     let links: { url: string; r: number[] }[] = [];
     try { links = (await page.getAnnotations({ intent: "display" })).filter((a: { subtype: string; url?: string }) => a.subtype === "Link" && a.url).map((a: { url: string; rect: number[] }) => ({ url: a.url, r: a.rect })); } catch { /* no links */ }
     const items: Item[] = [];
+    let rotated = 0;
     for (const it of content.items) {
       if (!("str" in it) || !it.str.trim()) continue;
       const size = Math.abs(it.transform[3]) || it.height || 10;
+      if (Math.abs(it.transform[1]) > 0.3 * Math.abs(it.transform[0])) rotated++;
       let name = "";
       try { name = page.commonObjs.has(it.fontName) ? String(page.commonObjs.get(it.fontName)?.name ?? "") : ""; } catch { /* fall back to family */ }
       const family = name || String(content.styles[it.fontName]?.fontFamily ?? "");
@@ -282,7 +286,16 @@ export async function pdfToDocx(bytes: Uint8Array, onProgress?: (done: number, t
       sizeChars.set(rs, (sizeChars.get(rs) ?? 0) + it.str.length);
       totalChars += it.str.length;
     }
-    pages.push({ items, images, gfx, width: view.width, height: view.height });
+    // Pages with things we cannot rebuild (charts and other drawings, rotated text) get a picture of the original page too.
+    const grids = detectGrids(gfx, view.width * view.height);
+    const inGrid = (b: Box) => grids.some((g) => (b.x0 + b.x1) / 2 >= g.x0 - 2 && (b.x0 + b.x1) / 2 <= g.x1 + 2 && (b.y0 + b.y1) / 2 <= g.ys[0] + 2 && (b.y0 + b.y1) / 2 >= g.ys[g.ys.length - 1] - 2);
+    const looseFills = gfx.fills.filter((f) => !inGrid(f)).length;
+    const looseSegs = gfx.paths.filter((q) => !inGrid(q.box) && !(q.n <= 3 && (q.box.x1 - q.box.x0 < 2 || q.box.y1 - q.box.y0 < 2))).reduce((a, q) => a + q.n, 0);
+    let snapshot: Uint8Array | undefined;
+    if (looseFills >= 12 || looseSegs >= 150 || rotated >= 4) {
+      try { snapshot = new Uint8Array(await (await canvasToBlob(await renderPage(pdf, n, 1.5), "image/jpeg", 0.85)).arrayBuffer()); } catch { /* no snapshot */ }
+    }
+    pages.push({ items, images, gfx, grids, snapshot, width: view.width, height: view.height });
   }
   pdf.destroy();
   if (totalChars < 10) throw new NoTextError("no text");
@@ -298,7 +311,12 @@ export async function pdfToDocx(bytes: Uint8Array, onProgress?: (done: number, t
   const contentW = first.width - L - R;
   const contentTwips = Math.round(contentW * 20);
 
-  const children: (InstanceType<typeof docx.Paragraph> | InstanceType<typeof docx.Table>)[] = [];
+  type Kid = InstanceType<typeof docx.Paragraph> | InstanceType<typeof docx.Table>;
+  const secs: { cols: boolean; kids: Kid[] }[] = [];
+  const add = (kid: Kid, cols = false) => {
+    const last = secs[secs.length - 1];
+    if (last && last.cols === cols) last.kids.push(kid); else secs.push({ cols, kids: [kid] });
+  };
 
   /** Turns lines of one flow of text into paragraphs and tables. */
   const buildBlocks = (lines: Line[], pg: Pg, band: number): Block[] => {
@@ -424,7 +442,7 @@ export async function pdfToDocx(bytes: Uint8Array, onProgress?: (done: number, t
     const blocks: Block[] = [];
     // Ruled tables first: every text item inside the ruled area is placed into its cell.
     let flow = pg.items;
-    for (const g of detectGrids(pg.gfx, pg.width * pg.height)) {
+    for (const g of pg.grids) {
       const inside = flow.filter((i) => i.x + i.w / 2 >= g.x0 - 2 && i.x + i.w / 2 <= g.x1 + 2 && i.y + i.size / 3 <= g.ys[0] + 2 && i.y + i.size / 3 >= g.ys[g.ys.length - 1] - 2);
       if (!inside.length) continue;
       let xs = g.xs;
@@ -451,6 +469,7 @@ export async function pdfToDocx(bytes: Uint8Array, onProgress?: (done: number, t
       flow = flow.filter((i) => !used.has(i));
     }
     const gutter = findGutter(flow, pg.width);
+    let strict = false;
     if (gutter === null) blocks.push(...buildBlocks(toLines(flow), pg, 0));
     else {
       // Two columns: rows that cross the gutter span the page; the rest are read left column, then right.
@@ -461,6 +480,11 @@ export async function pdfToDocx(bytes: Uint8Array, onProgress?: (done: number, t
         if (all.some((i) => i.x < gutter && i.x + i.w > gutter)) spanning.push(...all);
         else for (const i of all) (i.x + i.w <= gutter ? left : right).push(i);
       }
+      // Real Word columns only when the page is clearly two even columns of prose; otherwise the text just flows in reading order.
+      const ll = toLines(left), rl = toLines(right);
+      const med = (ls: Line[]) => ls.map((l) => l.segs.flatMap((sg) => sg.items).reduce((n, i) => n + i.str.length, 0)).sort((a, b) => a - b)[Math.floor(ls.length / 2)];
+      const wd = (its: Item[]) => Math.max(...its.map((i) => i.x + i.w)) - Math.min(...its.map((i) => i.x));
+      strict = ll.length >= 8 && rl.length >= 8 && med(ll) >= 30 && med(rl) >= 30 && Math.abs(wd(left) - wd(right)) < 0.2 * contentW && gutter > 0.42 * pg.width && gutter < 0.58 * pg.width;
       const colItems = [...left, ...right];
       const colTop = colItems.length ? Math.max(...colItems.map((i) => i.y)) : 0;
       const bandOf = (y: number) => (y >= colTop - 0.5 ? 0 : 3);
@@ -470,15 +494,28 @@ export async function pdfToDocx(bytes: Uint8Array, onProgress?: (done: number, t
     for (const img of pg.images) blocks.push({ kind: "image", img, o: { band: gutter !== null ? (img.w > 0.55 * contentW ? 0 : img.x + img.w / 2 < gutter ? 1 : 2) : 0, y: img.y } });
     blocks.sort((a, b) => a.o.band - b.o.band || b.o.y - a.o.y);
 
+    let lead = pi > 0;
+    if (pg.snapshot) {
+      const wpx = Math.round(contentW * 1.333), hpx = Math.round((wpx * pg.height) / pg.width);
+      add(new docx.Paragraph({ pageBreakBefore: lead || undefined, spacing: { after: 120 }, children: [new docx.ImageRun({ type: "jpg", data: pg.snapshot, transformation: { width: wpx, height: hpx } })] }));
+      add(new docx.Paragraph({ spacing: { after: 160 }, children: [new docx.TextRun({ text: "Picture of the original page above. Editable text from this page:", italics: true, color: "666666", size: 18 })] }));
+      lead = false;
+    }
+    let rightStarted = false;
     blocks.forEach((b, bi) => {
-      const pageBreak = pi > 0 && bi === 0;
-      if (b.kind === "para") children.push(paragraph(b, pageBreak));
+      const pageBreak = lead && bi === 0;
+      const cols = strict && (b.o.band === 1 || b.o.band === 2);
+      if (cols && b.o.band === 2 && !rightStarted) {
+        rightStarted = true;
+        add(new docx.Paragraph({ children: [new docx.TextRun({ children: [new docx.ColumnBreak()] })] }), true);
+      }
+      if (b.kind === "para") add(paragraph(b, pageBreak), cols);
       else if (b.kind === "image") {
-        const k = Math.min(1, (contentW * 1.333) / (b.img.w * 1.333));
-        children.push(new docx.Paragraph({ alignment: b.img.x - L > 12 && Math.abs(b.img.x + b.img.w / 2 - (L + first.width - R) / 2) < 6 ? docx.AlignmentType.CENTER : undefined, pageBreakBefore: pageBreak || undefined, spacing: { after: 120 }, children: [new docx.ImageRun({ type: "png", data: b.img.png, transformation: { width: Math.max(8, Math.round(b.img.w * 1.333 * k)), height: Math.max(8, Math.round(b.img.h * 1.333 * k)) } })] }));
+        const k = Math.min(1, (contentW * (cols ? 0.48 : 1) * 1.333) / (b.img.w * 1.333));
+        add(new docx.Paragraph({ alignment: !cols && b.img.x - L > 12 && Math.abs(b.img.x + b.img.w / 2 - (L + first.width - R) / 2) < 6 ? docx.AlignmentType.CENTER : undefined, pageBreakBefore: pageBreak || undefined, spacing: { after: 120 }, children: [new docx.ImageRun({ type: "png", data: b.img.png, transformation: { width: Math.max(8, Math.round(b.img.w * 1.333 * k)), height: Math.max(8, Math.round(b.img.h * 1.333 * k)) } })] }), cols);
       } else {
         const total = b.widthsPt.reduce((x, y) => x + y, 0);
-        const scale = Math.min(contentTwips, Math.round(total * 20)) / total;
+        const scale = Math.min(cols ? contentTwips * 0.48 : contentTwips, Math.round(total * 20)) / total;
         const widths = b.widthsPt.map((w) => Math.max(400, Math.round(w * scale)));
         const line = { style: b.borders ? docx.BorderStyle.SINGLE : docx.BorderStyle.NONE, size: 4, color: "000000" };
         const rows = b.cells.map((rowCells, ri) => new docx.TableRow({ children: rowCells.map((items, i) => new docx.TableCell({
@@ -487,19 +524,20 @@ export async function pdfToDocx(bytes: Uint8Array, onProgress?: (done: number, t
           shading: b.shade[ri][i] ? { type: docx.ShadingType.CLEAR, fill: b.shade[ri][i], color: "auto" } : undefined,
           children: [new docx.Paragraph({ children: runs(items, false), spacing: { after: 0 } })],
         })) }));
-        if (pageBreak) children.push(new docx.Paragraph({ pageBreakBefore: true, children: [] }));
-        children.push(new docx.Table({ rows, columnWidths: widths, width: { size: widths.reduce((a, c) => a + c, 0), type: docx.WidthType.DXA }, borders: { top: line, bottom: line, left: line, right: line, insideHorizontal: line, insideVertical: line } }));
-        children.push(new docx.Paragraph({ children: [] }));
+        if (pageBreak) add(new docx.Paragraph({ pageBreakBefore: true, children: [] }), cols);
+        add(new docx.Table({ rows, columnWidths: widths, width: { size: widths.reduce((x, y) => x + y, 0), type: docx.WidthType.DXA }, borders: { top: line, bottom: line, left: line, right: line, insideHorizontal: line, insideVertical: line } }), cols);
+        add(new docx.Paragraph({ children: [] }), cols);
       }
     });
     onProgress?.(pi + 1, pages.length);
   });
 
+  const page = { size: { width: Math.round(first.width * 20), height: Math.round(first.height * 20) }, margin: { top: Math.round(T * 20), bottom: Math.round(B * 20), left: Math.round(L * 20), right: Math.round(R * 20) } };
   const doc = new docx.Document({
-    sections: [{
-      properties: { page: { size: { width: Math.round(first.width * 20), height: Math.round(first.height * 20) }, margin: { top: Math.round(T * 20), bottom: Math.round(B * 20), left: Math.round(L * 20), right: Math.round(R * 20) } } },
-      children,
-    }],
+    sections: secs.map((sec, i) => ({
+      properties: { type: i ? docx.SectionType.CONTINUOUS : undefined, page, column: sec.cols ? { count: 2, space: Math.round(first.width * 20 * 0.04) } : undefined },
+      children: sec.kids,
+    })),
   });
   return new Uint8Array(await docx.Packer.toArrayBuffer(doc));
 }
